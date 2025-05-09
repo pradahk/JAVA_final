@@ -35,7 +35,7 @@ public class CharacterBody extends JPanel {
         g2d.fillOval(startX, bottomOvalY, width, heightOval);    // 아래 타원 (반쯤 올라옴)
 
         // 테두리
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(Color.decode("#CDBD8A"));
         g2d.setStroke(new BasicStroke(2));
         g2d.drawOval(startX, topOvalY, width, heightOval);       // 위 타원 전체
         g2d.drawLine(startX, rectY, startX, rectY + heightRect); // 좌측 선

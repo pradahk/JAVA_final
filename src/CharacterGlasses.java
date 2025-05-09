@@ -3,7 +3,7 @@ import java.awt.*;
 
 public class CharacterGlasses extends JPanel {
 
-    private final Color frameColor = Color.decode("#975B00");
+    private final Color frameColor = Color.decode("#7B5315");
     private final int bodyStartX;
     private final int bodyWidth;
 
@@ -22,11 +22,12 @@ public class CharacterGlasses extends JPanel {
         g2d.setColor(frameColor);
 
         // 프레임 설정
-        int frameOuterW = 100;
-        int frameOuterH = 50;
-        int frameThickness = 10;
-        int gap = 20;
-        int bridgeW = 20;
+        int frameOuterW = 115;
+        int frameOuterH = 75;
+        int frameThickness = 13;
+        int gap = 15;
+        int bridgeW = 0;
+        int arc = 50; // 곡률 넣기
 
         // 중앙 정렬
         int bodyCenterX = bodyStartX + bodyWidth / 2;
@@ -35,23 +36,23 @@ public class CharacterGlasses extends JPanel {
         int xRight = xLeft + frameOuterW + bridgeW + gap;
         int y = 200; // 수직 위치 (원하면 조정 가능)
 
-        // 왼쪽 테
-        g2d.fillRect(xLeft, y, frameOuterW, frameOuterH);
-        g2d.setColor(Color.WHITE);
-        g2d.fillRect(xLeft + frameThickness, y + frameThickness,
-                frameOuterW - 2 * frameThickness, frameOuterH - 2 * frameThickness);
-
-        // 오른쪽 테
+        // 왼쪽 프레임
         g2d.setColor(frameColor);
-        g2d.fillRect(xRight, y, frameOuterW, frameOuterH);
+        g2d.fillRoundRect(xLeft, y, frameOuterW, frameOuterH, arc, arc);
         g2d.setColor(Color.WHITE);
-        g2d.fillRect(xRight + frameThickness, y + frameThickness,
-                frameOuterW - 2 * frameThickness, frameOuterH - 2 * frameThickness);
+        g2d.fillRoundRect(xLeft + frameThickness, y + frameThickness, frameOuterW - 2 * frameThickness, frameOuterH - 2 * frameThickness, arc, arc);
+
+        // 오른쪽 프레임
+        g2d.setColor(frameColor);
+        g2d.fillRoundRect(xRight, y, frameOuterW, frameOuterH, arc, arc);
+        g2d.setColor(Color.WHITE);
+        g2d.fillRoundRect(xRight + frameThickness, y + frameThickness, frameOuterW - 2 * frameThickness, frameOuterH - 2 * frameThickness, arc, arc);
+
 
         // 브릿지
         g2d.setColor(frameColor);
         int bridgeX = xLeft + frameOuterW;
         int bridgeY = y + frameOuterH / 3;
-        g2d.fillRect(bridgeX, bridgeY, gap * 2, frameOuterH / 3);
+        g2d.fillRect(bridgeX, bridgeY, gap * 2-3, frameOuterH / 3-5);
     }
 }

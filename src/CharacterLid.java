@@ -10,7 +10,7 @@ public class CharacterLid extends JPanel {
     private final int heightOval;
     private final int heightRect;
 
-    private final Color faceColor = Color.decode("#C2CBD9");
+    private final Color faceColor = Color.decode("#F5C76C");
 
     public CharacterLid(int bodyStartX, int bodyTopOvalY, int bodyWidth, int bodyHeightOval) {
         this.width = (int)(bodyWidth * 0.75);
@@ -36,7 +36,7 @@ public class CharacterLid extends JPanel {
         g2d.fillRect(startX, rectY, width, heightRect);        // 몸통
         g2d.fillOval(startX, bottomOvalY, width, heightOval); // 아래 타원 (겹침)
 
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(Color.decode("#D4AD61"));
         g2d.setStroke(new BasicStroke(2));
         g2d.drawOval(startX, topY, width, heightOval);         // 위 타원 테두리
         g2d.drawLine(startX, rectY, startX, rectY + heightRect); // 좌

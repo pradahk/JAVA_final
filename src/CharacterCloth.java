@@ -10,7 +10,7 @@ public class CharacterCloth extends JPanel {
     public final int heightOval = 50;
     public final int heightRect = 100;
 
-    private final Color clothColor = new Color(0xA7D3F2);          // 옷 색상
+    private final Color clothColor = Color.decode("#A7D3F2");          // 옷 색상 A7D3F2
     private final Color skinColor = Color.decode("#F8E5AA");       // 몸통 색상 (윗 타원용)
 
     // 생성자에서 setOpaque 처리
@@ -41,7 +41,7 @@ public class CharacterCloth extends JPanel {
         g2d.fillOval(startX, topOvalY, width, heightOval);
 
         // 4. 아래쪽 테두리만 그림
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(Color.decode("#81A9C6"));
         g2d.setStroke(new BasicStroke(2));
         g2d.draw(new Arc2D.Double(startX, bottomOvalY, width, heightOval, 0, -180, Arc2D.OPEN));
 
