@@ -80,4 +80,20 @@ public class DosageRecordDAOImpl implements DosageRecordDAO {
         }
     }
 
+    @Override
+    public void resetAllRescheduledTimes(int userId) {
+        String sql = "UPDATE DosageRecords SET rescheduled_time = NULL WHERE user_id = ?";
+
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }

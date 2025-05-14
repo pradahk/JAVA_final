@@ -20,7 +20,11 @@ public interface DosageRecordDAO {
             LocalTime scheduledTime
     );
 
+    // 새로 계산한 복용시간을 DB에 저장하는 메서드
     void updateRescheduledTime(int userId, int medId, LocalDateTime scheduledTime, LocalDateTime rescheduledTime);
+
+    // 사용자가 생활패턴을 수정했을 떄 rescheduled_time을 null로 초기화하는 함수
+    void resetAllRescheduledTimes(int userId);
 
 }
 
