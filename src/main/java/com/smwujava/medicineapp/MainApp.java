@@ -2,13 +2,22 @@ package com.smwujava.medicineapp;
 
 import com.smwujava.medicineapp.db.DBManager; // 저희가 만든 DBManager 클래스 import
 import javax.swing.*; // Swing UI 관련 import는 유지
+import com.formdev.flatlaf.FlatLightLaf;
+import com.smwujava.medicineapp.ui.panels.MainWindow;
 
 public class MainApp {
     public static void main(String[] args) {
+        try {
+            UIManager.setLookAndFeel(new FlatLightLaf());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        // ----------------------------------------------------
+        SwingUtilities.invokeLater(() -> {
+            new MainWindow(); // 메인 창 실행
+        });
+
         // TODO: 애플리케이션 시작 시 데이터베이스 초기화 부분을 여기에 추가합니다.
-        // ----------------------------------------------------
         System.out.println("애플리케이션 초기화 시작..."); // 디버깅용 출력
 
         // 올바른 데이터베이스 초기화 호출:
