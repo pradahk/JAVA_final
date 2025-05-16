@@ -1,7 +1,7 @@
-package com.smwujava.medicineapp.service;
+package java.com.smwujava.medicineapp.service;
 
-import com.smwujava.medicineapp.dao.DosageRecordDAO;
-import com.smwujava.medicineapp.model.DosageRecord;
+import java.com.smwujava.medicineapp.dao.DosageRecordDAO;
+import java.com.smwujava.medicineapp.model.DosageRecord;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

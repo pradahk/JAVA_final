@@ -1,6 +1,6 @@
-package com.smwujava.medicineapp.dao;
+package java.com.smwujava.medicineapp.dao;
 
-import com.smwujava.medicineapp.model.DosageRecord;
+import java.com.smwujava.medicineapp.model.DosageRecord;
 
 import java.sql.*;
 import java.time.LocalDateTime;

@@ -1,4 +1,4 @@
-package com.smwujava.medicineapp.model;
+package java.com.smwujava.medicineapp.model;
 
 import java.time.LocalDateTime;
 
