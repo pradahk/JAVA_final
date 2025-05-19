@@ -48,11 +48,8 @@ public class UserService {
             User newUser = new User(username, password);
 
             // 사용자 정보를 DB에 삽입 (UserDao의 static 메서드 호출)
-            // insertUser는 생성된 ID를 반환하지만, 여기서는 성공 여부만 확인
-            int generatedId = UserDao.insertUser(newUser);
+            return UserDao.insertUser(newUser);
 
-            // 생성된 ID가 -1이 아니면 성공한 것으로 간주
-            return generatedId != -1;
 
         } catch (SQLException e) {
             System.err.println("회원가입 중 데이터베이스 오류 발생: " + e.getMessage());

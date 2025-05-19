@@ -8,6 +8,8 @@ public class User {
     private String username;  // username (TEXT)
     private String password;  // password (TEXT)
 
+    private boolean autoLogin;  // autoLogin 자동 로그인 여부 저장
+
     // -------------------- 생성자 --------------------
     // 기본 생성자 (필수: 일부 라이브러리에서 객체를 생성할 때 사용)
     public User() {
@@ -15,16 +17,18 @@ public class User {
 
     // 모든 필드를 받는 생성자 (객체 생성 시 필드 값을 한 번에 설정하기 편리)
     // userId는 DB에서 자동 생성되므로, 사용자 등록 시에는 username과 password만 받는 생성자가 더 유용할 수 있습니다.
-    public User(int userId, String username, String password) {
+    public User(int userId, String username, String password,boolean autoLogin) {
         this.userId = userId;
         this.username = username;
         this.password = password;
+        this.autoLogin = autoLogin;
     }
 
     // 사용자 등록 시 (DB에서 ID 자동 생성) 사용할 수 있는 생성자
     public User(String username, String password) {
         this.username = username;
         this.password = password;
+        this.autoLogin = autoLogin;
         // userId는 DB에서 할당될 예정이므로 설정하지 않거나 0 등으로 초기화
     }
 
@@ -43,6 +47,10 @@ public class User {
         return password;
     }
 
+    public boolean isAutoLogin() {
+        return autoLogin;
+    }
+
     // -------------------- Setter 메서드 --------------------
     // 각 필드의 값을 설정하기 위한 메서드들
     // user_id는 보통 DB에서 자동 생성되므로 Setter가 필요 없을 수도 있지만, DB에서 읽어온 값을 설정하기 위해 필요할 수 있습니다.
@@ -58,6 +66,10 @@ public class User {
         this.password = password;
     }
 
+    public void setAutoLogin(boolean autoLogin) {
+        this.autoLogin = autoLogin;
+    }
+
     // -------------------- 기타 메서드 --------------------
     // 객체의 내용을 문자열로 표현하여 디버깅 등에 편리하게 사용
     @Override
@@ -67,6 +79,7 @@ public class User {
                 ", username='" + username + '\'' +
                 // 보안상 password는 출력하지 않거나, 보호된 형식으로 출력합니다.
                 ", password='[PROTECTED]'" +
+                ", autoLogin=" + autoLogin +
                 '}';
     }
 }

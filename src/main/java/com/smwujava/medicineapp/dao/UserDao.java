@@ -6,7 +6,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException; // SQLException 사용
-import java.sql.Statement;   // 자동 생성된 키 가져올 때 필요
+import java.sql.Statement;
+
+// 자동 생성된 키 가져올 때 필요
 
 // 사용자(Users 테이블) 데이터 접근 객체 (DAO)
 // 데이터베이스의 Users 테이블과 관련된 데이터 CRUD(Create, Read, Update, Delete) 작업을 수행합니다.
@@ -24,20 +26,36 @@ public class UserDao {
      * @return 데이터베이스에서 자동 생성된 사용자의 user_id. 삽입 실패 시 (영향 받은 행 없음 등) -1.
      * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
      */
-    public static int insertUser(User user) throws SQLException { // <<< throws SQLException 추가
+
+    public static void createTableIfNotExists() throws SQLException {
+        String sql = "CREATE TABLE IF NOT EXISTS Users (" +
+                "user_id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "username TEXT NOT NULL UNIQUE, " +
+                "password TEXT NOT NULL, " +
+                "auto_login INTEGER DEFAULT 0" +
+                ")";
+        try (Connection conn = DBManager.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    public static boolean insertUser(User user) throws SQLException { // <<< throws SQLException 추가
         // SQL INSERT 구문. user_id는 AUTOINCREMENT이므로 데이터 삽입 시 값을 지정하지 않습니다.
-        String sql = "INSERT INTO Users (username, password) VALUES (?, ?)";
-        int generatedId = -1; // 생성된 user_id를 저장할 변수
+        String sql = "INSERT INTO Users (username, password, auto_login) VALUES (?, ?, ?)";
 
         // try-with-resources 구문: Connection과 PreparedStatement를 사용 후 자동으로 닫아줍니다.
         try (Connection conn = DBManager.getConnection(); // DBManager에서 데이터베이스 연결 가져오기 (자동 닫힘)
              // PreparedStatement 생성 시 Statement.RETURN_GENERATED_KEYS 옵션으로 자동 생성된 키(user_id)를 받아올 수 있도록 함
-             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) { // PreparedStatement 생성 (자동 닫힘)
+             PreparedStatement pstmt = conn.prepareStatement(sql)) { // PreparedStatement 생성 (자동 닫힘)
 
             // SQL 구문의 ?에 실제 값을 설정 (인덱스는 1부터 시작)
             pstmt.setString(1, user.getUsername());
             // TODO: 실제 앱에서는 보안을 위해 비밀번호를 해시화하여 저장해야 합니다.
             pstmt.setString(2, user.getPassword()); // 현재는 평문으로 설정
+            pstmt.setBoolean(3, user.isAutoLogin());
+
+            return pstmt.executeUpdate() > 0;
 
             // SQL 실행 (INSERT, UPDATE, DELETE 구문은 executeUpdate() 메서드 사용)
             // executeUpdate()는 영향을 받은 행의 개수를 반환합니다.
@@ -89,7 +107,7 @@ public class UserDao {
      */
     public static User findUserByUsernameAndPassword(String username, String password) throws SQLException { // <<< throws SQLException 추가
         // SQL SELECT 구문. username과 password 모두 일치하는 행을 찾습니다.
-        String sql = "SELECT user_id, username, password FROM Users WHERE username = ? AND password = ?";
+        String sql = "SELECT user_id, username, password, auto_login FROM Users WHERE username = ? AND password = ?";
         User user = null; // 찾은 사용자 정보를 담을 변수 (기본값 null)
 
         // try-with-resources 구문으로 Connection, PreparedStatement, ResultSet 안전하게 관리
@@ -107,8 +125,9 @@ public class UserDao {
                     int userId = rs.getInt("user_id");
                     String foundUsername = rs.getString("username");
                     String foundPassword = rs.getString("password"); // DB에 저장된 비밀번호 (해시값)
+                    boolean autoLogin = rs.getBoolean("auto_login");
 
-                    user = new User(userId, foundUsername, foundPassword); // User 객체 생성 (DB에서 읽어온 ID 포함)
+                    user = new User(userId, foundUsername, foundPassword, autoLogin); // User 객체 생성 (DB에서 읽어온 ID 포함)
                     // System.out.println("User found for login: " + foundUsername); // 디버깅
                 } else {
                     // System.out.println("User not found or password incorrect for username: " + username); // 디버깅
