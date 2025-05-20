@@ -40,9 +40,10 @@ public class UserDao {
         }
     }
 
-    public static boolean insertUser(User user) throws SQLException { // <<< throws SQLException 추가
+    public static int insertUser(User user) throws SQLException { // <<< throws SQLException 추가
         // SQL INSERT 구문. user_id는 AUTOINCREMENT이므로 데이터 삽입 시 값을 지정하지 않습니다.
         String sql = "INSERT INTO Users (username, password, auto_login) VALUES (?, ?, ?)";
+        int generatedId = -1;
 
         // try-with-resources 구문: Connection과 PreparedStatement를 사용 후 자동으로 닫아줍니다.
         try (Connection conn = DBManager.getConnection(); // DBManager에서 데이터베이스 연결 가져오기 (자동 닫힘)
@@ -55,7 +56,6 @@ public class UserDao {
             pstmt.setString(2, user.getPassword()); // 현재는 평문으로 설정
             pstmt.setBoolean(3, user.isAutoLogin());
 
-            return pstmt.executeUpdate() > 0;
 
             // SQL 실행 (INSERT, UPDATE, DELETE 구문은 executeUpdate() 메서드 사용)
             // executeUpdate()는 영향을 받은 행의 개수를 반환합니다.
@@ -70,10 +70,9 @@ public class UserDao {
                     }
                 }
             }
-
         } // try-with-resources 블록을 벗어나면 Connection, PreparedStatement, ResultSet이 자동으로 닫힙니다.
         // SQLException이 발생하면 여기서 잡지 않고 호출한 곳(UserService)으로 던집니다.
-        return generatedId; // 데이터베이스에서 생성된 user_id 또는 삽입 실패 시 -1 반환
+        return generatedId;// 데이터베이스에서 생성된 user_id 또는 삽입 실패 시 -1 반환
     }
 
     /**

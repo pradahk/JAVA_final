@@ -25,7 +25,7 @@ public class User {
     }
 
     // 사용자 등록 시 (DB에서 ID 자동 생성) 사용할 수 있는 생성자
-    public User(String username, String password) {
+    public User(String username, String password, boolean autoLogin) {
         this.username = username;
         this.password = password;
         this.autoLogin = autoLogin;
