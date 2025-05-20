@@ -5,128 +5,149 @@ import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.ResultSet; // 테이블 존재 여부 확인에 사용
+import java.sql.ResultSet;
 
 public class DBManager {
-    // SQLite JDBC URL - './'는 현재 애플리케이션이 실행되는 디렉토리를 의미합니다.
-    // 실제 배포 시에는 사용자의 문서 폴더 등 더 적합한 위치를 사용하는 것이 좋습니다.
     private static final String DB_URL = "jdbc:sqlite:./pharm_reminder.db";
 
-    // 데이터베이스 스키마를 생성하는 SQL 구문입니다.
-    // CREATE TABLE IF NOT EXISTS 구문은 테이블이 없으면 생성하고, 있으면 무시합니다.
-    // PRAGMA foreign_keys = ON; 는 외래 키 제약을 활성화합니다. SQLite는 기본적으로 비활성화되어 있습니다.
+    // <<< 변경점 1: Connection 객체를 static 필드로 유지 >>>
+    private static Connection currentConnection = null; // 현재 열린 DB 연결을 저장할 static 필드
+
     private static final String CREATE_SCHEMA_SQL =
             "PRAGMA foreign_keys = ON;" +
-            "CREATE TABLE IF NOT EXISTS Users (" +
-            "   user_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 사용자 고유 ID (자동 증가)
-            "   username TEXT UNIQUE NOT NULL," +            // 사용자 로그인 ID (고유하며 비어있으면 안됨)
-            "   password TEXT NOT NULL" +                    // 비밀번호 (비어있으면 안됨)
-            ");" +
-            "CREATE TABLE IF NOT EXISTS UserPatterns (" +
-            "   user_id INTEGER PRIMARY KEY," + // Users 테이블의 user_id를 참조하는 기본 키이자 외래 키
-            "   breakfast TEXT," +              // 아침 식사 시간 (예: "08:00")
-            "   lunch TEXT," +                  // 점심 식사 시간 (예: "12:30")
-            "   dinner TEXT," +                 // 저녁 식사 시간 (예: "19:00")
-            "   sleep TEXT," +                  // 잠자는 시간 (예: "23:00")
-            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
-            ");" +
-            "CREATE TABLE IF NOT EXISTS Medicine (" +
-            "   med_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 약 정보 고유 ID (자동 증가)
-            "   user_id INTEGER NOT NULL," +                 // 이 약을 등록한 사용자 ID (비어있으면 안됨)
-            "   med_name TEXT NOT NULL," +                   // 약 이름 (비어있으면 안됨)
-            "   med_daily_amount INTEGER NOT NULL," +        // 하루 복용 횟수 (비어있으면 안됨)
-            "   med_days TEXT NOT NULL," +                   // 복용하는 요일 (예: "월,화,수", "매일") (비어있으면 안됨)
-            "   med_condition TEXT NOT NULL," +              // 복용 조건 타입 (예: "식사", "잠자기") (비어있으면 안됨)
-            "   med_timing TEXT NOT NULL," +                 // 복용 시점 (예: "전", "후") (비어있으면 안됨)
-            "   med_minutes INTEGER NOT NULL," +             // 조건 시점으로부터 몇 분 (예: 30) (비어있으면 안됨)
-            "   color TEXT NOT NULL," +                      // 캘린더 표시 색상 코드 (예: "#FF0000") (비어있으면 안됨)
-            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
-            ");" +
-            "CREATE TABLE IF NOT EXISTS DosageRecords (" +
-            "   record_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 복용 기록 고유 ID (자동 증가)
-            "   user_id INTEGER NOT NULL," +                  // 이 기록의 사용자 ID (비어있으면 안됨)
-            "   med_id INTEGER NOT NULL," +                   // 이 기록 대상 약의 ID (비어있으면 안됨)
-            "   record_date TEXT NOT NULL," +                 // 복용 기록 날짜 (예: "YYYY-MM-DD") (비어있으면 안됨)
-            "   scheduled_time TEXT NOT NULL," +              // 복용 예정 시간 (예: "YYYY-MM-DD HH:MM") (비어있으면 안됨)
-            "   actual_taken_time TEXT," +                    // 실제 복용한 시간 (예: "YYYY-MM-DD HH:MM", 복용 안 했으면 NULL)
-            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
-            "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
-            "   UNIQUE (user_id, med_id, record_date)" + // 같은 사용자가 같은 날 같은 약 기록은 중복 불가
-            ");";
-    // 외부에서 이 클래스의 객체를 직접 생성하지 못하도록 private 생성자로 선언
+                    "CREATE TABLE IF NOT EXISTS Users (" +
+                    "   user_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "   username TEXT UNIQUE NOT NULL," +
+                    "   password TEXT NOT NULL" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS UserPatterns (" +
+                    "   user_id INTEGER PRIMARY KEY," +
+                    "   breakfast TEXT," +
+                    "   lunch TEXT," +
+                    "   dinner TEXT," +
+                    "   sleep TEXT," +
+                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS Medicine (" +
+                    "   med_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "   user_id INTEGER NOT NULL," +
+                    "   med_name TEXT NOT NULL," +
+                    "   med_daily_amount INTEGER NOT NULL," +
+                    "   med_days TEXT NOT NULL," +
+                    "   med_condition TEXT NOT NULL," +
+                    "   med_timing TEXT NOT NULL," +
+                    "   med_minutes INTEGER NOT NULL," +
+                    "   color TEXT NOT NULL," +
+                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
+                    ");" +
+                    "CREATE TABLE IF NOT EXISTS DosageRecords (" +
+                    "   record_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "   user_id INTEGER NOT NULL," +
+                    "   med_id INTEGER NOT NULL," +
+                    "   record_date TEXT NOT NULL," +
+                    "   scheduled_time TEXT NOT NULL," +
+                    "   actual_taken_time TEXT," +
+                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
+                    "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
+                    "   UNIQUE (user_id, med_id, record_date)" +
+                    ");";
+
     private DBManager() {
         // Utility 클래스이므로 인스턴스화 방지
     }
+
     /**
      * SQLite 데이터베이스 연결을 설정하고 Connection 객체를 반환합니다.
      * DB 파일이 없으면 자동으로 생성됩니다.
+     * 싱글턴 패턴으로 Connection을 관리합니다.
      * @return 유효한 Connection 객체
      * @throws SQLException 데이터베이스 접근 오류 발생 시
      */
     public static Connection getConnection() throws SQLException {
-        Connection con = null;
-        try {
-            // DriverManager를 통해 DB_URL로 연결 시도
-            con = DriverManager.getConnection(DB_URL);
-        } catch (SQLException e) {
-            System.err.println("Database Connection Error: " + e.getMessage());
-            e.printStackTrace(); // 오류 내용을 자세히 출력
-            throw e; // 호출하는 곳에서 오류를 처리하도록 다시 던짐
+        // <<< 변경점 2: 기존 Connection이 없거나 닫혀있으면 새로 생성 >>>
+        if (currentConnection == null || currentConnection.isClosed()) {
+            try {
+                currentConnection = DriverManager.getConnection(DB_URL);
+                // System.out.println("New database connection established."); // 디버깅용
+            } catch (SQLException e) {
+                System.err.println("Database Connection Error: " + e.getMessage());
+                e.printStackTrace();
+                throw e;
+            }
         }
-        return con;
+        return currentConnection;
     }
+
     /**
      * 데이터베이스 스키마가 존재하지 않으면(Users 테이블 기준) 스키마를 생성합니다.
      * 애플리케이션 시작 시 한 번 호출하여 DB 파일 및 테이블을 초기화합니다.
      */
     public static void initializeDatabase() {
-        System.out.println("Initializing database..."); // 디버깅용 출력
-        // try-with-resources 구문으로 Connection 객체를 자동으로 닫도록 처리
-        try (Connection conn = getConnection()) {
+        System.out.println("Initializing database...");
+        // initializeDatabase는 스키마 생성 여부만 확인하므로, 여기서는 별도의 Connection을 사용해도 무방합니다.
+        // 하지만getConnection()이 싱글턴으로 변경되었으므로, 같은 Connection을 사용하게 됩니다.
+        try (Connection conn = getConnection()) { // getConnection()이 이제 Connection을 생성하거나 기존 것을 반환
             if (conn != null) {
                 DatabaseMetaData meta = conn.getMetaData();
-                // "Users" 테이블이 존재하는지 확인
-                // getTables(catalog, schemaPattern, tableNamePattern, types)
-                // SQLite에서는 catalog와 schemaPattern을 null로 지정
-                ResultSet tables = meta.getTables(null, null, "com/smwujava/medicineapp/model/User", null);
+                // 테이블 존재 여부 확인
+                ResultSet tables = meta.getTables(null, null, "Users", null); // <<< 여기 "Users"로 수정
 
                 if (!tables.next()) {
-                    // "Users" 테이블이 존재하지 않으면 스키마 생성 구문 실행
-                    System.out.println("Database schema not found. Creating schema..."); // 디버깅용 출력
+                    System.out.println("Database schema not found. Creating schema...");
                     try (Statement stmt = conn.createStatement()) {
-                        // 여러 SQL 구문을 한 번에 실행 (SQLite에서 지원)
                         stmt.execute(CREATE_SCHEMA_SQL);
-                        System.out.println("Database schema created successfully."); // 디버깅용 출력
+                        System.out.println("Database schema created successfully.");
                     } catch (SQLException e) {
                         System.err.println("Error creating database schema: " + e.getMessage());
                         e.printStackTrace();
-                        // 스키마 생성 실패는 치명적인 오류이므로, 여기서 적절한 오류 처리 필요
                     }
                 } else {
-                    System.out.println("Database schema already exists."); // 디버깅용 출력
+                    System.out.println("Database schema already exists.");
                 }
             }
         } catch (SQLException e) {
             System.err.println("Error during database initialization connection: " + e.getMessage());
             e.printStackTrace();
-            // 초기화 중 연결 오류 발생 시 처리
         }
     }
 
     /**
-     * 주어진 데이터베이스 연결을 닫습니다.
-     * 가능하다면 Connection 객체는 try-with-resources 구문으로 관리하는 것이 더 안전합니다.
-     * @param conn 닫을 Connection 객체 (null일 수 있음)
+     * 현재 열려 있는 데이터베이스 연결을 닫습니다.
+     * MainApp의 shutdown hook에서 호출될 매개변수 없는 메서드입니다.
      */
-    public static void closeConnection(Connection conn) {
-        if (conn != null) {
+    // <<< 변경점 3: MainApp에서 호출할 매개변수 없는 closeConnection() 추가 >>>
+    public static void closeConnection() {
+        // 기존 closeConnection(Connection conn) 메서드를 내부적으로 활용합니다.
+        // 또는 직접 currentConnection을 닫는 로직을 구현합니다.
+        if (currentConnection != null) {
             try {
-                conn.close();
-                // System.out.println("Database connection closed."); // 디버깅용 출력
+                currentConnection.close();
+                currentConnection = null; // 연결 닫았으니 null로 설정
+                System.out.println("Database connection closed.");
             } catch (SQLException e) {
                 System.err.println("Error closing database connection: " + e.getMessage());
                 e.printStackTrace();
             }
         }
+    }
+
+    // <<< 기존의 closeConnection(Connection conn) 메서드는 그대로 유지하거나,
+    // 필요 없다면 제거할 수 있습니다. 여기서는 일단 유지하겠습니다. >>>
+    /**
+     * 주어진 데이터베이스 연결을 닫습니다.
+     * (이 메서드는 이제 주로 내부적으로 사용되거나, 특정 Connection을 직접 닫을 때 사용)
+     * @param conn 닫을 Connection 객체 (null일 수 있음)
+     */
+    public static void closeConnection(Connection conn) {
+        if (conn != null && conn != currentConnection) { // currentConnection이 아닌 다른 Connection인 경우에만 닫음
+            try {
+                conn.close();
+                // System.out.println("Separate database connection closed.");
+            } catch (SQLException e) {
+                System.err.println("Error closing separate database connection: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        // currentConnection은 매개변수 없는 closeConnection()으로 관리합니다.
     }
 }
