@@ -68,6 +68,11 @@ public class DBManager {
         try {
             // DriverManager를 통해 DB_URL로 연결 시도
             con = DriverManager.getConnection(DB_URL);
+
+            try (Statement stmt = con.createStatement()) {
+                stmt.execute("PRAGMA foreign_keys = ON;");
+            }
+
         } catch (SQLException e) {
             System.err.println("Database Connection Error: " + e.getMessage());
             e.printStackTrace(); // 오류 내용을 자세히 출력
@@ -88,7 +93,7 @@ public class DBManager {
                 // "Users" 테이블이 존재하는지 확인
                 // getTables(catalog, schemaPattern, tableNamePattern, types)
                 // SQLite에서는 catalog와 schemaPattern을 null로 지정
-                ResultSet tables = meta.getTables(null, null, "com/smwujava/medicineapp/model/User", null);
+                ResultSet tables = meta.getTables(null, null, "Users", null);
 
                 if (!tables.next()) {
                     // "Users" 테이블이 존재하지 않으면 스키마 생성 구문 실행
