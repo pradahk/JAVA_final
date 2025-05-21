@@ -7,8 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime; // <<< 변경점 1: LocalDateTime 임포트
-import java.time.format.DateTimeFormatter; // <<< 변경점 1: DateTimeFormatter 임포트
+import java.time.LocalDate; // LocalDate 임포트 추가 (누락된 임포트)
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,22 +20,22 @@ import java.util.List;
  */
 public class DosageRecordDao {
 
-    // <<< 변경점 2: 날짜/시간 문자열 포맷터 상수 정의 >>>
-    // 데이터베이스의 DATETIME 컬럼 형식에 맞춰 포맷터를 정의합니다. (예: "yyyy-MM-dd HH:mm:ss")
-    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    // 날짜/시간 문자열 포맷터 상수 정의
+    // DB의 DATETIME 컬럼 형식에 맞춰 포맷터를 정의합니다. (예: "yyyy-MM-dd HH:mm:ss")
+    private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd"); // record_date 컬럼을 위한 포맷터 추가
 
     public DosageRecordDao() {
         // Utility 클래스처럼 사용되므로 인스턴스화 방지
     }
 
-    // <<< 변경점 3: LocalDateTime <-> String 변환을 위한 도우미 메서드 (null 처리 포함) >>>
     /**
      * LocalDateTime 객체를 DB에 저장할 수 있는 문자열 형식으로 변환합니다. null이면 null을 반환합니다.
      * @param dateTime 변환할 LocalDateTime 객체
      * @return DB 형식의 문자열 또는 null
      */
     private static String toDbString(LocalDateTime dateTime) {
-        return dateTime == null ? null : dateTime.format(FORMATTER);
+        return dateTime == null ? null : dateTime.format(DATETIME_FORMATTER);
     }
 
     /**
@@ -46,7 +47,7 @@ public class DosageRecordDao {
         if (dateTimeString == null || dateTimeString.trim().isEmpty()) {
             return null;
         }
-        return LocalDateTime.parse(dateTimeString, FORMATTER);
+        return LocalDateTime.parse(dateTimeString, DATETIME_FORMATTER);
     }
 
     /**
@@ -56,9 +57,10 @@ public class DosageRecordDao {
      * @return 데이터베이스에서 자동 생성된 기록의 record_id. 오류 발생 시 -1을 반환합니다.
      * @throws SQLException 데이터베이스 접근 오류 발생 시
      */
-    public static int insertDosageRecord(DosageRecord record) throws SQLException { // <<< SQLException 던지도록 변경
-        // <<< 변경점 4: SQL INSERT 구문 변경 (record_date 제거, rescheduled_time 추가) >>>
-        String sql = "INSERT INTO DosageRecords (user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time) VALUES (?, ?, ?, ?, ?)";
+    public static int insertDosageRecord(DosageRecord record) throws SQLException {
+        // DB 스키마에 record_date 컬럼이 여전히 존재하므로, 해당 컬럼에도 값을 삽입해야 합니다.
+        // record_date는 scheduled_time의 날짜 부분에서 추출하여 사용합니다.
+        String sql = "INSERT INTO DosageRecords (user_id, med_id, record_date, scheduled_time, actual_taken_time, rescheduled_time) VALUES (?, ?, ?, ?, ?, ?)";
         int generatedId = -1;
 
         try (Connection conn = DBManager.getConnection();
@@ -66,10 +68,19 @@ public class DosageRecordDao {
 
             pstmt.setInt(1, record.getUserId());
             pstmt.setInt(2, record.getMedId());
-            // <<< 변경점 4: LocalDateTime을 String으로 변환하여 설정 >>>
-            pstmt.setString(3, toDbString(record.getScheduledTime()));
-            pstmt.setString(4, toDbString(record.getActualTakenTime())); // actualTakenTime이 null이면 DB에 NULL로 저장
-            pstmt.setString(5, toDbString(record.getRescheduledTime())); // rescheduledTime이 null이면 DB에 NULL로 저장
+
+            // record_date 컬럼에 scheduledTime의 날짜 부분만 저장
+            if (record.getScheduledTime() != null) {
+                pstmt.setString(3, record.getScheduledTime().toLocalDate().format(DATE_FORMATTER)); // 날짜만 저장
+                pstmt.setString(4, toDbString(record.getScheduledTime())); // 전체 시간 저장
+            } else {
+                // record.getScheduledTime()이 null인 경우, record_date와 scheduled_time 모두 NULL로 설정
+                pstmt.setNull(3, java.sql.Types.VARCHAR); // ERROR FIX: java.sql.Types.TEXT -> java.sql.Types.VARCHAR
+                pstmt.setNull(4, java.sql.Types.VARCHAR); // ERROR FIX: java.sql.Types.TEXT -> java.sql.Types.VARCHAR
+            }
+
+            pstmt.setString(5, toDbString(record.getActualTakenTime())); // actualTakenTime이 null이면 DB에 NULL로 저장
+            pstmt.setString(6, toDbString(record.getRescheduledTime())); // rescheduledTime이 null이면 DB에 NULL로 저장
 
             int affectedRows = pstmt.executeUpdate();
 
@@ -98,33 +109,31 @@ public class DosageRecordDao {
      * @return 해당 사용자의 지정된 기간 내 복용 기록 목록 (List<DosageRecord>). 기록이 없으면 빈 목록을 반환합니다.
      * @throws SQLException 데이터베이스 접근 오류 발생 시
      */
-    public static List<DosageRecord> findRecordsByUserIdAndDateRange(int userId, String startDate, String endDate) throws SQLException { // <<< SQLException 던지도록 변경
-        // <<< 변경점 5: SQL SELECT 구문 변경 (record_date 제거, rescheduled_time 추가, 정렬 기준 변경) >>>
-        // `scheduled_time` 컬럼을 사용하여 날짜 범위를 지정합니다. 날짜만 주어지면 해당 날짜의 시작과 끝으로 변환합니다.
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time FROM DosageRecords WHERE user_id = ? AND scheduled_time BETWEEN ? AND ? ORDER BY scheduled_time";
+    public static List<DosageRecord> findRecordsByUserIdAndDateRange(int userId, String startDate, String endDate) throws SQLException {
+        // `record_date` 컬럼을 사용하여 날짜 범위를 조회합니다.
+        // SQLITE는 BETWEEN 연산자가 TEXT 타입에서도 잘 작동합니다.
+        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time FROM DosageRecords WHERE user_id = ? AND record_date BETWEEN ? AND ? ORDER BY scheduled_time";
         List<DosageRecord> recordList = new ArrayList<>();
 
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
-            // <<< 변경점 5: 날짜 범위 매개변수를 'YYYY-MM-DD 00:00:00' ~ 'YYYY-MM-DD 23:59:59' 형식으로 변환 >>>
-            pstmt.setString(2, startDate + " 00:00:00"); // 시작 날짜의 자정
-            pstmt.setString(3, endDate + " 23:59:59");   // 종료 날짜의 마지막 시간
+            pstmt.setString(2, startDate);
+            pstmt.setString(3, endDate);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     int recordId = rs.getInt("record_id");
                     int foundUserId = rs.getInt("user_id");
                     int medId = rs.getInt("med_id");
-                    // String recordDate = rs.getString("record_date"); // <<< 변경점 5: record_date 필드 제거 (모델과 일치) >>>
 
-                    // <<< 변경점 5: DB 문자열을 LocalDateTime으로 변환하여 읽기 >>>
+                    // DB 문자열을 LocalDateTime으로 변환하여 읽기
                     LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
                     LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
-                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time")); // <<< 변경점 5: rescheduled_time 읽기 >>>
+                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time"));
 
-                    // <<< 변경점 5: DosageRecord 객체 생성 시 LocalDateTime 타입 생성자 사용 >>>
+                    // DosageRecord 객체 생성 시 LocalDateTime 타입 생성자 사용
                     DosageRecord record = new DosageRecord(recordId, foundUserId, medId, scheduledTime, actualTakenTime, rescheduledTime);
                     recordList.add(record);
                 }
@@ -146,13 +155,12 @@ public class DosageRecordDao {
      * @return 업데이트 성공 시 true, 실패 시 false
      * @throws SQLException 데이터베이스 접근 오류 발생 시
      */
-    public static boolean updateActualTakenTime(int recordId, LocalDateTime actualTakenTime) throws SQLException { // <<< 변경점 6: 매개변수 타입 LocalDateTime으로 변경
+    public static boolean updateActualTakenTime(int recordId, LocalDateTime actualTakenTime) throws SQLException {
         String sql = "UPDATE DosageRecords SET actual_taken_time = ? WHERE record_id = ?";
 
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            // <<< 변경점 6: LocalDateTime을 String으로 변환하여 설정 >>>
             pstmt.setString(1, toDbString(actualTakenTime)); // 실제 복용 시간 (null 허용)
             pstmt.setInt(2, recordId); // 업데이트할 기록의 ID
 
@@ -166,8 +174,6 @@ public class DosageRecordDao {
         }
     }
 
-    // -------------------- <<< 변경점 7: 새로운 메서드 추가 >>> --------------------
-
     /**
      * 특정 복용 기록의 재조정된 알람 시간을 업데이트합니다.
      *
@@ -180,6 +186,9 @@ public class DosageRecordDao {
      */
     public static boolean updateRescheduledTime(int userId, int medId, LocalDateTime originalScheduledTime, LocalDateTime newRescheduledTime) throws SQLException {
         // user_id, med_id, scheduled_time 세 가지를 기준으로 특정 기록을 찾습니다.
+        // 참고: record_date는 unique 제약조건의 일부이므로, scheduled_time만으로는 정확한 레코드를 찾기 어려울 수 있습니다.
+        // 하지만 여기서는 이미 모델에 record_date 필드가 없고,
+        // scheduled_time 자체가 정확한 시점(날짜+시간)을 나타내므로 이를 사용합니다.
         String sql = "UPDATE DosageRecords SET rescheduled_time = ? WHERE user_id = ? AND med_id = ? AND scheduled_time = ?";
 
         try (Connection conn = DBManager.getConnection();

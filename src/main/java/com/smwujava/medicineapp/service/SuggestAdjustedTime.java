@@ -17,7 +17,7 @@ import java.util.Map;
  * 사용자의 실제 복용시간과 알람 시간의 편차를 분석해
  * 다음 알람 시간을 자동으로 보정해주는 서비스 클래스
  */
-public class SuggestAdjustedTime {
+public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 조정
 
     private DosageRecordDao dosageRecordDao;
     private static final int ANALYSIS_WINDOW_DAYS = 7;
@@ -45,13 +45,16 @@ public class SuggestAdjustedTime {
         }
 
         // 2. 최근 기록을 바탕으로 시간대별 보정 시간 계산
-        // <<< 이 부분에서 suggestByTimeSlot 메서드를 호출합니다. >>>
         Map<LocalTime, LocalTime> adjustedTimeMap = suggestByTimeSlot(recentRecords);
 
         // 3. 보정 시간을 적용할 미래 복용 기록 조회
         List<DosageRecord> futureRecords = null;
         try {
             LocalDate today = LocalDate.now();
+            // 오늘 이후 기록을 가져오므로, today.plusDays(1)부터 시작하거나 today를 포함하되 실제 복용 여부를 체크해야 합니다.
+            // 현재 DBManager의 스키마에 UNIQUE(user_id, med_id, record_date) 제약이 있으므로,
+            // 오늘 날짜에 대한 새로운 scheduledTime을 추가할 때 기존 기록과 충돌하지 않도록 주의해야 합니다.
+            // 여기서는 오늘 날짜 포함 미래 30일치 기록을 가져옵니다.
             LocalDate futureEndDate = today.plusDays(30);
             futureRecords = dosageRecordDao.findRecordsByUserIdAndDateRange(userId, today.toString(), futureEndDate.toString());
         } catch (SQLException e) {
@@ -70,32 +73,19 @@ public class SuggestAdjustedTime {
     }
 
     /**
-     * (누락된 메서드) 사용자의 복용 기록을 바탕으로 시간대별 알람 시간을 보정하여 제안합니다.
-     * 이 메서드는 groupByScheduledTime과 suggestAdjustedTimeForSlot을 사용하여
-     * 최종적으로 시간대별 보정된 시간 맵을 생성합니다.
+     * 사용자의 복용 기록을 바탕으로 시간대별 알람 시간을 보정하여 제안합니다.
      *
      * @param records 복용 기록 리스트( scheduledTime, actualTakenTime)
      * @return 보정된 알람 시간 맵 (KEY: 원래 예정 시간, VALUE: 보정된 시간)
      */
-    // <<< 이 부분이 누락되었던 메서드입니다. 이전에 주신 코드를 기반으로 복원합니다. >>>
     public Map<LocalTime, LocalTime> suggestByTimeSlot(List<DosageRecord> records) {
-
-        // LocalTime 단위로 묶은 그룹 객체
         Map<LocalTime, List<DosageRecord>> grouped = groupByScheduledTime(records);
-
-        // KEY: scheduledTime, VALUE: 보정된 시간
         Map<LocalTime, LocalTime> adjustedMap = new HashMap<>();
 
-
         for (LocalTime scheduledTime : grouped.keySet()) {
-            // 해당 시간대의 복용 기록 리스트 저장
             List<DosageRecord> slotRecords = grouped.get(scheduledTime);
-
-            // 복용 기록 분산해서 보정된 시간 제안
             LocalTime adjusted = suggestAdjustedTimeForSlot(slotRecords);
 
-            // (원래시간 , 보정시간) 식으로 맵 저장
-            // suggestAdjustedTimeForSlot이 null을 반환할 수 있으므로, null이 아닌 경우에만 put
             if (adjusted != null) {
                 adjustedMap.put(scheduledTime, adjusted);
             }
@@ -147,17 +137,18 @@ public class SuggestAdjustedTime {
         if (count == 0) {
             return null;
         }
-        if (count < 4) {
+        if (count < 4) { // 최소 4개 이상의 유효 기록 조건
+            // 기록이 부족하므로 보정하지 않고 원래 예정 시간 반환
             return records.get(0).getScheduledTime().toLocalTime();
         }
 
         long avgOffset = totalOffsetMinutes / count;
         LocalTime baseTime = records.get(0).getScheduledTime().toLocalTime();
 
-        if (avgOffset >= 15 || avgOffset <= -15) {
+        if (avgOffset >= 15 || avgOffset <= -15) { // 평균 편차가 15분 이상/이하일 경우에만 보정
             return baseTime.plusMinutes(avgOffset);
         } else {
-            return baseTime;
+            return baseTime; // 보정 필요 없음
         }
     }
 
@@ -170,13 +161,15 @@ public class SuggestAdjustedTime {
     private int applyRescheduledTimesToFutureRecords(List<DosageRecord> futureRecords, Map<LocalTime, LocalTime> adjustedMap) {
         int updatedCount = 0;
         for (DosageRecord record : futureRecords) {
-            if (record.getActualTakenTime() != null) {
+            // 실제 복용 시간이 이미 있는 기록 (즉, 이미 복용한 기록)은 재조정하지 않음
+            if (record.isTaken()) { // isTaken() 메서드 활용
                 continue;
             }
 
             LocalTime originalTime = record.getScheduledTime().toLocalTime();
             LocalTime newTime = adjustedMap.get(originalTime);
 
+            // 보정된 시간이 있고, 원래 시간과 다를 경우에만 업데이트
             if (newTime != null && !newTime.equals(originalTime)) {
                 LocalDateTime rescheduled = LocalDateTime.of(record.getScheduledTime().toLocalDate(), newTime);
 
@@ -184,11 +177,13 @@ public class SuggestAdjustedTime {
                     boolean success = dosageRecordDao.updateRescheduledTime(
                             record.getUserId(),
                             record.getMedId(),
-                            record.getScheduledTime(),
-                            rescheduled
+                            record.getScheduledTime(), // 원본 scheduledTime을 기준으로 업데이트
+                            rescheduled // 새로 계산된 rescheduledTime 설정
                     );
                     if (success) {
                         updatedCount++;
+                        // 모델 객체도 업데이트 (선택 사항, 그러나 일관성을 위해 권장)
+                        record.setRescheduledTime(rescheduled);
                     }
                 } catch (SQLException e) {
                     System.err.println("Error applying rescheduled time for record ID " + record.getRecordId() + ": " + e.getMessage());
