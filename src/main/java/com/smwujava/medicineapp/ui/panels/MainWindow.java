@@ -1,41 +1,56 @@
+// MainWindow.java
 package com.smwujava.medicineapp.ui.panels;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Arrays;
+
+import com.smwujava.medicineapp.ui.panels.BottomNavPanel;
+
+import com.smwujava.medicineapp.ui.panels.CalendarPanel;
+import com.smwujava.medicineapp.ui.panels.MedicationListPanel;
+import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
+import com.smwujava.medicineapp.ui.panels.LifestylePanel;
+import com.smwujava.medicineapp.ui.panels.DummyPanel;
+
 
 public class MainWindow extends JFrame {
     private CardLayout cardLayout;
-    private JPanel mainPanel;
+    private JPanel contentPanel;
 
     public MainWindow() {
-        setTitle("Dementia App");
-        setSize(800, 600); // 💡 더 넓은 화면 비율
-        setLocationRelativeTo(null); // 화면 중앙 정렬
+        super("Medicine App");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // 🔄 CardLayout 설정
+        // 1) 메인 콘텐츠 (CardLayout)
         cardLayout = new CardLayout();
-        mainPanel = new JPanel(cardLayout);
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.add(new CalendarPanel(), "CALENDAR");
+        contentPanel.add(new MedicationListPanel(), "LIST");
+        contentPanel.add(
+                new MedicationSettingsPanel(cardLayout, contentPanel),
+                "SETTINGS"
+        );
+        contentPanel.add(new LifestylePanel(), "LIFESTYLE");
+        contentPanel.add(new DummyPanel(), "DUMMY");
+        add(contentPanel, BorderLayout.CENTER);
 
-        // 🧩 화면 패널 등록
-        mainPanel.add(new CalendarPanel(), "home");
-        mainPanel.add(new DummyPanel(), "user");
+        // 2) 바텀 네비게이션
+        add(new BottomNavPanel(this::switchTo), BorderLayout.SOUTH);
 
-        add(mainPanel, BorderLayout.CENTER);
-
-        // ⬇️ 하단 네비게이션 바
-        BottomNavPanel bottomNav = new BottomNavPanel(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String cmd = e.getActionCommand(); // "home", "user"
-                cardLayout.show(mainPanel, cmd);
-            }
-        });
-
-        add(bottomNav, BorderLayout.SOUTH);
+        pack();
+        setLocationRelativeTo(null);
         setVisible(true);
+    }
+
+    private void switchTo(String name) {
+        cardLayout.show(contentPanel, name);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(MainWindow::new);
     }
 }
