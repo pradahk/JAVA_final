@@ -1,34 +1,37 @@
 package com.smwujava.medicineapp.ui.panels;
 
+import com.smwujava.medicineapp.ui.components.CalendarDayPanel;
+
 import javax.swing.*;
 import java.awt.*;
+import java.util.List;
+import java.util.Arrays;
+import java.awt.Color;
+
 
 public class CalendarPanel extends JPanel {
     public CalendarPanel() {
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
 
-        // 전체 여백
-        JPanel wrapper = new JPanel(new GridBagLayout());
-        wrapper.setBackground(Color.WHITE);
-        wrapper.setBorder(BorderFactory.createEmptyBorder(40, 30, 40, 30)); // 💡 더 넉넉한 여백
+        // 상단: 월 제목
+        JLabel monthLabel = new JLabel("4월", SwingConstants.CENTER);
+        add(monthLabel, BorderLayout.NORTH);
 
-        JPanel mainContent = new JPanel(new GridLayout(1, 2, 40, 0)); // 간격도 증가
-        mainContent.setBackground(Color.WHITE);
+        // 중앙: 요일 + 날짜 그리드
+        JPanel grid = new JPanel(new GridLayout(7, 7, 5, 5));
+        String[] headers = {"일", "월", "화", "수", "목", "금", "토"};
+        for (String h : headers) grid.add(new JLabel(h, SwingConstants.CENTER));
+        for (int i = 1; i <= 30; i++) {
+            // ① 날짜 숫자
+            // ② 각 날짜에 표시할 블록 색상들 (여기서는 예제로 두 가지 색을 지정)
+            List<Color> blockColors = Arrays.asList(
+                    new Color(135, 206, 250),
+                    new Color(144, 238, 144)
+            );
+            // ③ 선택 여부 (true/false)
+            boolean isSelected = false;
 
-        // 달력
-        JPanel calendar = new JPanel();
-        calendar.setPreferredSize(new Dimension(340, 400)); // 💡 고정 크기
-        calendar.setBackground(Color.LIGHT_GRAY);
-        calendar.add(new JLabel("달력"));
-
-        // 복약 목록
-        MedicationListPanel meds = new MedicationListPanel();
-
-        mainContent.add(calendar);
-        mainContent.add(meds);
-
-        wrapper.add(mainContent); // 가운데 정렬
-        add(wrapper, BorderLayout.CENTER);
+            grid.add(new CalendarDayPanel(i, blockColors, isSelected));
+        }
     }
 }
