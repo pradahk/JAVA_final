@@ -17,4 +17,3 @@ public class RoundedTextField extends JTextField {
         setFont(new Font("SansSerif", Font.PLAIN, 14));
     }
 }
-

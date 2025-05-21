@@ -41,9 +41,11 @@ public class MainApp {
 
             System.out.println("애플리케이션의 메인 로직 시작.");
 
+            /*
             SwingUtilities.invokeLater(() -> {
                 new MainWindow();
             });
+            */
 
             // 애플리케이션 종료 시 DB 연결 해제
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {

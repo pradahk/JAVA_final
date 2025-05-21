@@ -6,23 +6,24 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
 
+import javax.swing.*;
+import java.awt.*;
+import java.util.function.Consumer;  // Navigator를 위해 Consumer import
+
 public class BottomNavPanel extends JPanel {
+    public BottomNavPanel(Consumer<String> navigator) {
+        setLayout(new GridLayout(1, 3));
+        setPreferredSize(new Dimension(0, 60));
 
-    public BottomNavPanel(ActionListener listener) {
-        setLayout(new GridLayout(1, 3)); // 버튼 3개 가로 정렬
-        setBackground(new Color(230, 230, 250)); // 연보라 배경
+        add(createNavButton("icons/home.png", () -> navigator.accept("CALENDAR")));
+        add(createNavButton("icons/list.png", () -> navigator.accept("LIST")));
+        add(createNavButton("icons/user.png", () -> navigator.accept("DUMMY")));
+    }
 
-        // 홈 버튼
-        CustomButton homeBtn = new CustomButton("홈");
-        homeBtn.setActionCommand("home");
-        homeBtn.addActionListener(listener);
-
-        // 복약 버튼
-        CustomButton userBtn = new CustomButton("사용자");
-        userBtn.setActionCommand("user");
-        userBtn.addActionListener(listener);
-
-        add(homeBtn);
-        add(userBtn);
+    private JButton createNavButton(String iconPath, Runnable action) {
+        JButton btn = new CustomButton();
+        btn.setIcon(new ImageIcon(getClass().getResource(iconPath)));
+        btn.addActionListener(e -> action.run());
+        return btn;
     }
 }

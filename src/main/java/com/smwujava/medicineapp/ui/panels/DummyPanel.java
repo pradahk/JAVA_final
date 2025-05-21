@@ -10,5 +10,3 @@ public class DummyPanel extends JPanel {  // ← 클래스에 public 추가
         add(new JLabel("더미 화면입니다")); // 또는 원하는 텍스트
     }
 }
-
-
