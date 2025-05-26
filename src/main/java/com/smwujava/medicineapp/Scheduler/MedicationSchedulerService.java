@@ -6,7 +6,10 @@ import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.model.DosageRecord;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.model.UserPattern;
+import com.smwujava.medicineapp.service.AlarmAdjustmentService;
+import com.smwujava.medicineapp.service.AlarmManager;
 
+import java.util.Optional;
 import java.sql.SQLException; // SQLException 임포트 추가
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -82,6 +85,8 @@ public class MedicationSchedulerService {
                 record.setScheduledTime(scheduledDateTime); // LocalDateTime 객체 그대로 전달
                 record.setActualTakenTime(null); // 복용 전
                 record.setRescheduledTime(null); // 초기 스케줄링이므로 null로 설정
+                record.setSkipped(false);
+
 
                 try {
                     // DB의 UNIQUE 제약 조건(user_id, med_id, record_date)을 활용하여 중복 삽입 방지
