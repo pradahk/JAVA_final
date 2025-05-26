@@ -12,49 +12,51 @@ public class DBManager {
     // 실제 배포 시에는 사용자의 문서 폴더 등 더 적합한 위치를 사용하는 것이 좋습니다.
     private static final String DB_URL = "jdbc:sqlite:./pharm_reminder.db";
 
+    // 데이터베이스 스키마를 생성하는 SQL 구문입니다.
+    // CREATE TABLE IF NOT EXISTS 구문은 테이블이 없으면 생성하고, 있으면 무시합니다.
+    // PRAGMA foreign_keys = ON; 는 외래 키 제약을 활성화합니다. SQLite는 기본적으로 비활성화되어 있습니다.
     private static final String CREATE_SCHEMA_SQL =
             "PRAGMA foreign_keys = ON;" +
-                    "CREATE TABLE IF NOT EXISTS Users (" +
-                    "   user_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 사용자 고유 ID (자동 증가)
-                    "   username TEXT UNIQUE NOT NULL," +             // 사용자 로그인 ID (고유하며 비어있으면 안됨)
-                    "   password TEXT NOT NULL," +                   // 비밀번호 (비어있으면 안됨)
-                    "   auto_login INTEGER DEFAULT 0" +               // 자동 로그인 여부 (0: false, 1: true) <<-- 추가된 컬럼
-                    ");" +
-                    "CREATE TABLE IF NOT EXISTS UserPatterns (" +
-                    "   user_id INTEGER PRIMARY KEY," + // Users 테이블의 user_id를 참조하는 기본 키이자 외래 키
-                    "   breakfast TEXT," +               // 아침 식사 시간 (예: "08:00")
-                    "   lunch TEXT," +                   // 점심 식사 시간 (예: "12:30")
-                    "   dinner TEXT," +                  // 저녁 식사 시간 (예: "19:00")
-                    "   sleep TEXT," +                   // 잠자는 시간 (예: "23:00")
-                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
-                    ");" +
-                    "CREATE TABLE IF NOT EXISTS Medicine (" +
-                    "   med_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 약 정보 고유 ID (자동 증가)
-                    "   user_id INTEGER NOT NULL," +                 // 이 약을 등록한 사용자 ID (비어있으면 안됨)
-                    "   med_name TEXT NOT NULL," +                   // 약 이름 (비어있으면 안됨)
-                    "   med_daily_amount INTEGER NOT NULL," +       // 하루 복용 횟수 (비어있으면 안됨)
-                    "   med_days TEXT NOT NULL," +                   // 복용하는 요일 (예: "월,화,수", "매일") (비어있으면 안됨)
-                    "   med_condition TEXT NOT NULL," +             // 복용 조건 타입 (예: "식사", "잠자기") (비어있으면 안됨)
-                    "   med_timing TEXT NOT NULL," +                 // 복용 시점 (예: "전", "후") (비어있으면 안됨)
-                    "   med_minutes INTEGER NOT NULL," +             // 조건 시점으로부터 몇 분 (예: 30) (비어있으면 안됨)
-                    "   color TEXT NOT NULL," +                     // 캘린더 표시 색상 코드 (예: "#FF0000") (비어있으면 안됨)
-                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
-                    ");" +
-                    "CREATE TABLE IF NOT EXISTS DosageRecords (" +
-                    "   record_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 복용 기록 고유 ID (자동 증가)
-                    "   user_id INTEGER NOT NULL," +                 // 이 기록의 사용자 ID (비어있으면 안됨)
-                    "   med_id INTEGER NOT NULL," +                   // 이 기록 대상 약의 ID (비어있으면 안됨)
-                    "   record_date TEXT NOT NULL," +                 // 복용 기록 날짜 (예: "YYYY-MM-DD") (비어있으면 안됨)
-                    "   scheduled_time TEXT NOT NULL," +             // 복용 예정 시간 (예: "YYYY-MM-DD HH:MM") (비어있으면 안됨)
-                    "   actual_taken_time TEXT," +                   // 실제 복용한 시간 (예: "YYYY-MM-DD HH:MM", 복용 안 했으면 NULL)
-                    "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
-                    "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
-                    "   UNIQUE (user_id, med_id, record_date)" +     // 같은 사용자가 같은 날 같은 약 기록은 중복 불가
-                    ");";
-
+            "CREATE TABLE IF NOT EXISTS Users (" +
+            "   user_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 사용자 고유 ID (자동 증가)
+            "   username TEXT UNIQUE NOT NULL," +            // 사용자 로그인 ID (고유하며 비어있으면 안됨)
+            "   password TEXT NOT NULL" +                    // 비밀번호 (비어있으면 안됨)
+            ");" +
+            "CREATE TABLE IF NOT EXISTS UserPatterns (" +
+            "   user_id INTEGER PRIMARY KEY," + // Users 테이블의 user_id를 참조하는 기본 키이자 외래 키
+            "   breakfast TEXT," +              // 아침 식사 시간 (예: "08:00")
+            "   lunch TEXT," +                  // 점심 식사 시간 (예: "12:30")
+            "   dinner TEXT," +                 // 저녁 식사 시간 (예: "19:00")
+            "   sleep TEXT," +                  // 잠자는 시간 (예: "23:00")
+            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
+            ");" +
+            "CREATE TABLE IF NOT EXISTS Medicine (" +
+            "   med_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 약 정보 고유 ID (자동 증가)
+            "   user_id INTEGER NOT NULL," +                 // 이 약을 등록한 사용자 ID (비어있으면 안됨)
+            "   med_name TEXT NOT NULL," +                   // 약 이름 (비어있으면 안됨)
+            "   med_daily_amount INTEGER NOT NULL," +        // 하루 복용 횟수 (비어있으면 안됨)
+            "   med_days TEXT NOT NULL," +                   // 복용하는 요일 (예: "월,화,수", "매일") (비어있으면 안됨)
+            "   med_condition TEXT NOT NULL," +              // 복용 조건 타입 (예: "식사", "잠자기") (비어있으면 안됨)
+            "   med_timing TEXT NOT NULL," +                 // 복용 시점 (예: "전", "후") (비어있으면 안됨)
+            "   med_minutes INTEGER NOT NULL," +             // 조건 시점으로부터 몇 분 (예: 30) (비어있으면 안됨)
+            "   color TEXT NOT NULL," +                      // 캘린더 표시 색상 코드 (예: "#FF0000") (비어있으면 안됨)
+            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
+            ");" +
+            "CREATE TABLE IF NOT EXISTS DosageRecords (" +
+            "   record_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 복용 기록 고유 ID (자동 증가)
+            "   user_id INTEGER NOT NULL," +                  // 이 기록의 사용자 ID (비어있으면 안됨)
+            "   med_id INTEGER NOT NULL," +                   // 이 기록 대상 약의 ID (비어있으면 안됨)
+            "   record_date TEXT NOT NULL," +                 // 복용 기록 날짜 (예: "YYYY-MM-DD") (비어있으면 안됨)
+            "   scheduled_time TEXT NOT NULL," +              // 복용 예정 시간 (예: "YYYY-MM-DD HH:MM") (비어있으면 안됨)
+            "   actual_taken_time TEXT," +                    // 실제 복용한 시간 (예: "YYYY-MM-DD HH:MM", 복용 안 했으면 NULL)
+            "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
+            "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
+            "   UNIQUE (user_id, med_id, record_date)" + // 같은 사용자가 같은 날 같은 약 기록은 중복 불가
+            ");";
+    // 외부에서 이 클래스의 객체를 직접 생성하지 못하도록 private 생성자로 선언
     private DBManager() {
+        // Utility 클래스이므로 인스턴스화 방지
     }
-
     /**
      * SQLite 데이터베이스 연결을 설정하고 Connection 객체를 반환합니다.
      * DB 파일이 없으면 자동으로 생성됩니다.
@@ -66,12 +68,6 @@ public class DBManager {
         try {
             // DriverManager를 통해 DB_URL로 연결 시도
             con = DriverManager.getConnection(DB_URL);
-
-            // 외래 키 제약을 활성화 (새로운 Connection마다 활성화하는 것이 안전)
-            try (Statement stmt = con.createStatement()) {
-                stmt.execute("PRAGMA foreign_keys = ON;");
-            }
-
         } catch (SQLException e) {
             System.err.println("Database Connection Error: " + e.getMessage());
             e.printStackTrace(); // 오류 내용을 자세히 출력
@@ -79,7 +75,6 @@ public class DBManager {
         }
         return con;
     }
-
     /**
      * 데이터베이스 스키마가 존재하지 않으면(Users 테이블 기준) 스키마를 생성합니다.
      * 애플리케이션 시작 시 한 번 호출하여 DB 파일 및 테이블을 초기화합니다.
@@ -90,7 +85,10 @@ public class DBManager {
         try (Connection conn = getConnection()) {
             if (conn != null) {
                 DatabaseMetaData meta = conn.getMetaData();
-                ResultSet tables = meta.getTables(null, null, "Users", null);
+                // "Users" 테이블이 존재하는지 확인
+                // getTables(catalog, schemaPattern, tableNamePattern, types)
+                // SQLite에서는 catalog와 schemaPattern을 null로 지정
+                ResultSet tables = meta.getTables(null, null, "com/smwujava/medicineapp/model/User", null);
 
                 if (!tables.next()) {
                     // "Users" 테이블이 존재하지 않으면 스키마 생성 구문 실행

@@ -4,27 +4,24 @@ import javax.swing.*;
 import java.awt.*;
 
 public class MedicationSettingsPanel extends JPanel {
-    private CardLayout cardLayout;
-    private JPanel mainPanel;
-
-    public MedicationSettingsPanel(CardLayout layout, JPanel panel) {
-        this.cardLayout = layout;
-        this.mainPanel = panel;
-
+    public MedicationSettingsPanel() {
         setLayout(new GridBagLayout());
         setBackground(Color.WHITE);
 
+        // 회색 박스 (컨테이너, 시각적으로는 안 보이게)
         JPanel container = new JPanel();
         container.setPreferredSize(new Dimension(500, 450));
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-        container.setOpaque(false);
+        container.setOpaque(false);  // 회색 박스 숨기기
 
+        // 약 이름 입력 필드
         JTextField nameField = new JTextField("");
         nameField.setMaximumSize(new Dimension(400, 30));
         nameField.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(Box.createVerticalStrut(20));
         container.add(nameField);
 
+        // 복용 주기
         JLabel daysLabel = new JLabel("복용 주기");
         daysLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(Box.createVerticalStrut(20));
@@ -40,6 +37,7 @@ public class MedicationSettingsPanel extends JPanel {
         daysPanel.setOpaque(false);
         container.add(daysPanel);
 
+        // 복용 시간대
         container.add(Box.createVerticalStrut(20));
         JLabel timeLabel = new JLabel("복용 시간대");
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -55,6 +53,7 @@ public class MedicationSettingsPanel extends JPanel {
         timePanel.add(directionBox);
         container.add(timePanel);
 
+        // 하루 복용량
         container.add(Box.createVerticalStrut(20));
         JLabel doseLabel = new JLabel("하루 복용량");
         doseLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -70,6 +69,7 @@ public class MedicationSettingsPanel extends JPanel {
         dosePanel.add(plus);
         container.add(dosePanel);
 
+        // 이벤트 처리
         minus.addActionListener(e -> {
             int current = Integer.parseInt(count.getText());
             if (current > 1) count.setText(String.valueOf(current - 1));
@@ -79,6 +79,7 @@ public class MedicationSettingsPanel extends JPanel {
             count.setText(String.valueOf(current + 1));
         });
 
+        // 색상 선택
         container.add(Box.createVerticalStrut(20));
         JLabel colorLabel = new JLabel("색상 선택:");
         colorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -103,15 +104,7 @@ public class MedicationSettingsPanel extends JPanel {
         }
         container.add(colorPanel);
 
-        container.add(Box.createVerticalStrut(30));
-        JButton saveButton = new JButton("저장");
-        saveButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(saveButton);
-
-        saveButton.addActionListener(e -> {
-            cardLayout.show(mainPanel, "home");
-        });
-
+        // 최종 UI 조립
         add(container);
     }
 }
