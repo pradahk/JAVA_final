@@ -21,6 +21,7 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
 
     private DosageRecordDao dosageRecordDao;
     private static final int ANALYSIS_WINDOW_DAYS = 7;
+    private static final int ACCEPTABLE_OFFSET_MINUTES = 15; // 추가: 허용 가능한 시간 편차 (15분)
 
     public SuggestAdjustedTime(DosageRecordDao dosageRecordDao) {
         this.dosageRecordDao = dosageRecordDao;
@@ -32,6 +33,7 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         try {
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
+            // DosageRecordDao에서 실제 복용했으며 건너뛰지 않은 기록만 가져오도록 이미 수정되었습니다.
             recentRecords = dosageRecordDao.findRecordsByUserIdAndDateRange(userId, startDate.toString(), endDate.toString());
         } catch (SQLException e) {
             System.err.println("Error fetching recent records for adjustment analysis: " + e.getMessage());
@@ -51,12 +53,10 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         List<DosageRecord> futureRecords = null;
         try {
             LocalDate today = LocalDate.now();
-            // 오늘 이후 기록을 가져오므로, today.plusDays(1)부터 시작하거나 today를 포함하되 실제 복용 여부를 체크해야 합니다.
-            // 현재 DBManager의 스키마에 UNIQUE(user_id, med_id, record_date) 제약이 있으므로,
-            // 오늘 날짜에 대한 새로운 scheduledTime을 추가할 때 기존 기록과 충돌하지 않도록 주의해야 합니다.
-            // 여기서는 오늘 날짜 포함 미래 30일치 기록을 가져옵니다.
             LocalDate futureEndDate = today.plusDays(30);
-            futureRecords = dosageRecordDao.findRecordsByUserIdAndDateRange(userId, today.toString(), futureEndDate.toString());
+            // 여기서는 실제 복용 여부와 상관없이 미래의 모든 예정 기록을 가져옵니다.
+            // 실제 복용 여부는 applyRescheduledTimesToFutureRecords에서 다시 체크합니다.
+            futureRecords = dosageRecordDao.findRecordsByUserIdAndDateRangeForFuture(userId, today.toString(), futureEndDate.toString());
         } catch (SQLException e) {
             System.err.println("Error fetching future records for adjustment application: " + e.getMessage());
             e.printStackTrace();
@@ -74,7 +74,6 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
 
     /**
      * 사용자의 복용 기록을 바탕으로 시간대별 알람 시간을 보정하여 제안합니다.
-     *
      * @param records 복용 기록 리스트( scheduledTime, actualTakenTime)
      * @return 보정된 알람 시간 맵 (KEY: 원래 예정 시간, VALUE: 보정된 시간)
      */
@@ -86,6 +85,7 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
             List<DosageRecord> slotRecords = grouped.get(scheduledTime);
             LocalTime adjusted = suggestAdjustedTimeForSlot(slotRecords);
 
+            // 보정된 시간이 null이 아니면 (즉, 보정이 제안되면) 맵에 추가
             if (adjusted != null) {
                 adjustedMap.put(scheduledTime, adjusted);
             }
@@ -102,6 +102,7 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         Map<LocalTime, List<DosageRecord>> grouped = new HashMap<>();
 
         for (DosageRecord record : records) {
+            // scheduledTime이 null이 아닌 경우만 처리
             if (record.getScheduledTime() == null) {
                 continue;
             }
@@ -116,6 +117,7 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
     /**
      * 시간대별로 그룹화된 복용 기록을 바탕으로 보정된 시간을 제안합니다.
      * (최소 4개 이상의 유효 기록이 있고, 평균 편차가 15분 이상/이하일 경우에만 보정)
+     * "알람이 울려도 15분이 넘은 시간에 먹은 것은 카운트를 안해야 한다"는 로직 반영
      * @param records 해당 시간대의 복용 기록 리스트 (실제 복용 시간 포함)
      * @return 보정된 LocalTime 객체, 보정이 필요 없으면 원래 시간, 기록이 없으면 null
      */
@@ -127,25 +129,33 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
             LocalDateTime scheduled = record.getScheduledTime();
             LocalDateTime actual = record.getActualTakenTime();
 
-            if (actual != null && scheduled != null) {
+            // 실제 복용 시간이 있고, 건너뛰지 않았으며 (isSkipped = false),
+            // 실제 복용 시간과 예정 시간의 편차가 허용 가능한 범위 내에 있을 경우에만 유효한 기록으로 간주
+            if (actual != null && scheduled != null && !record.isSkipped()) {
                 long offset = Duration.between(scheduled, actual).toMinutes();
-                totalOffsetMinutes += offset;
-                count++;
+
+                // 알람이 울려도 15분이 넘은 시간에 먹은 것은 카운트하지 않음 (절대값으로 비교)
+                if (Math.abs(offset) <= ACCEPTABLE_OFFSET_MINUTES) {
+                    totalOffsetMinutes += offset;
+                    count++;
+                }
             }
         }
 
         if (count == 0) {
-            return null;
+            return null; // 유효한 기록이 없으면 보정할 수 없음
         }
         if (count < 4) { // 최소 4개 이상의 유효 기록 조건
             // 기록이 부족하므로 보정하지 않고 원래 예정 시간 반환
+            // (여기서 records.get(0).getScheduledTime()이 null일 가능성을 방지하기 위해 상위에서 null 체크를 합니다.)
             return records.get(0).getScheduledTime().toLocalTime();
         }
 
         long avgOffset = totalOffsetMinutes / count;
         LocalTime baseTime = records.get(0).getScheduledTime().toLocalTime();
 
-        if (avgOffset >= 15 || avgOffset <= -15) { // 평균 편차가 15분 이상/이하일 경우에만 보정
+        // 평균 편차가 15분 이상/이하일 경우에만 보정
+        if (Math.abs(avgOffset) >= ACCEPTABLE_OFFSET_MINUTES) {
             return baseTime.plusMinutes(avgOffset);
         } else {
             return baseTime; // 보정 필요 없음
@@ -161,8 +171,8 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
     private int applyRescheduledTimesToFutureRecords(List<DosageRecord> futureRecords, Map<LocalTime, LocalTime> adjustedMap) {
         int updatedCount = 0;
         for (DosageRecord record : futureRecords) {
-            // 실제 복용 시간이 이미 있는 기록 (즉, 이미 복용한 기록)은 재조정하지 않음
-            if (record.isTaken()) { // isTaken() 메서드 활용
+            // 실제 복용 시간이 이미 있거나 (isTaken() 활용), 건너뛴 기록은 재조정하지 않음
+            if (record.isTaken() || record.isSkipped()) {
                 continue;
             }
 

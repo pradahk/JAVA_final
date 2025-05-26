@@ -31,28 +31,29 @@ public class DosageRecordDao {
     /**
      * LocalDateTime 객체를 DB에 저장할 수 있는 문자열 형식으로 변환합니다. null이면 null을 반환합니다.
      * @param dateTime 변환할 LocalDateTime 객체
-     * @return DB 형식의 문자열 또는 null
+     * @return DB 저장 형식의 문자열 또는 null
      */
-    private static String toDbString(LocalDateTime dateTime) {
-        return dateTime != null ? dateTime.format(DATETIME_FORMATTER) : null;
+    private String convertLocalDateTimeToString(LocalDateTime dateTime) {
+        return (dateTime != null) ? dateTime.format(DATETIME_FORMATTER) : null;
     }
 
     /**
-     * DB에서 읽어온 문자열을 LocalDateTime 객체로 변환합니다. null이거나 비어있으면 null을 반환합니다.
-     * @param dbString DB에서 읽어온 문자열
+     * DB에서 읽어온 문자열을 LocalDateTime 객체로 변환합니다. null이면 null을 반환합니다.
+     * @param dateTimeString DB에서 읽어온 날짜/시간 문자열
      * @return LocalDateTime 객체 또는 null
      */
-    private static LocalDateTime fromDbString(String dbString) {
-        return (dbString != null && !dbString.trim().isEmpty()) ? LocalDateTime.parse(dbString, DATETIME_FORMATTER) : null;
+    private LocalDateTime convertStringToLocalDateTime(String dateTimeString) {
+        return (dateTimeString != null && !dateTimeString.isEmpty()) ? LocalDateTime.parse(dateTimeString, DATETIME_FORMATTER) : null;
     }
 
     /**
      * 새로운 복용 기록을 데이터베이스의 DosageRecords 테이블에 삽입합니다.
-     * @param record 삽입할 복용 기록 정보 (DosageRecord 객체)
-     * @return 데이터베이스에서 자동 생성된 복용 기록의 record_id. 오류 발생 시 -1을 반환합니다.
+     * recordId는 DB에서 자동 생성됩니다.
+     * @param record 삽입할 복용 기록 (DosageRecord 객체)
+     * @return 데이터베이스에서 자동 생성된 복용 기록의 recordId. 오류 발생 시 -1을 반환합니다.
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
      */
-    public static int insertDosageRecord(DosageRecord record) throws SQLException {
-        //변경점 1: INSERT 쿼리에 is_skipped, rescheduled_time 컬럼 추가
+    public int insertDosageRecord(DosageRecord record) throws SQLException {
         String sql = "INSERT INTO DosageRecords (user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped) VALUES (?, ?, ?, ?, ?, ?)";
         int generatedId = -1;
 
@@ -61,10 +62,10 @@ public class DosageRecordDao {
 
             pstmt.setInt(1, record.getUserId());
             pstmt.setInt(2, record.getMedId());
-            pstmt.setString(3, toDbString(record.getScheduledTime()));
-            pstmt.setString(4, toDbString(record.getActualTakenTime()));
-            pstmt.setString(5, toDbString(record.getRescheduledTime())); //rescheduled_time 설정
-            pstmt.setInt(6, record.isSkipped() ? 1 : 0); //is_skipped 설정
+            pstmt.setString(3, convertLocalDateTimeToString(record.getScheduledTime()));
+            pstmt.setString(4, convertLocalDateTimeToString(record.getActualTakenTime()));
+            pstmt.setString(5, convertLocalDateTimeToString(record.getRescheduledTime())); // rescheduled_time 추가
+            pstmt.setBoolean(6, record.isSkipped()); // is_skipped 추가
 
             int affectedRows = pstmt.executeUpdate();
 
@@ -83,76 +84,155 @@ public class DosageRecordDao {
     }
 
     /**
-     * 특정 사용자, 약 ID, 예정 시간으로 복용 기록을 조회합니다.
-     * @param userId 사용자 ID
-     * @param medId 약 ID
-     * @param scheduledTime 예정 복용 시간
-     * @return 해당 복용 기록이 존재하면 DosageRecord 객체, 없으면 null
+     * 특정 recordId를 가진 복용 기록을 데이터베이스에서 조회합니다.
+     *
+     * @param recordId 조회할 복용 기록의 ID
+     * @return 해당 recordId에 해당하는 DosageRecord 객체. 없으면 null을 반환합니다.
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
      */
-    public static DosageRecord getDosageRecord(int userId, int medId, LocalDateTime scheduledTime) throws SQLException {
-        //변경점 2: SELECT 쿼리에 is_skipped, rescheduled_time 컬럼 추가
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped FROM DosageRecords WHERE user_id = ? AND med_id = ? AND scheduled_time = ?";
+    public DosageRecord findDosageRecordById(int recordId) throws SQLException {
+        String sql = "SELECT * FROM DosageRecords WHERE record_id = ?";
         DosageRecord record = null;
 
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setInt(1, userId);
-            pstmt.setInt(2, medId);
-            pstmt.setString(3, toDbString(scheduledTime));
+            pstmt.setInt(1, recordId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
-                    int recordId = rs.getInt("record_id");
-                    LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
-                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time")); //rescheduled_time 읽어오기
-                    boolean isSkipped = rs.getBoolean("is_skipped"); //is_skipped 읽어오기
-
-                    record = new DosageRecord(recordId, userId, medId, scheduledTime, actualTakenTime, rescheduledTime, isSkipped); //생성자 업데이트
+                    record = new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")), // rescheduled_time 추가
+                            rs.getBoolean("is_skipped") // is_skipped 추가
+                    );
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error getting dosage record for user ID " + userId + ", med ID " + medId + ", scheduled time " + scheduledTime + ": " + e.getMessage());
+            System.err.println("Error finding dosage record by ID " + recordId + ": " + e.getMessage());
             throw e;
         }
         return record;
     }
 
     /**
-     * 특정 사용자와 특정 날짜 범위 내의 모든 복용 기록을 조회합니다.
-     * @param userId 사용자 ID
-     * @param startDate 조회 시작 날짜 (YYYY-MM-DD)
-     * @param endDate 조회 종료 날짜 (YYYY-MM-DD)
-     * @return 복용 기록 리스트
+     * 특정 사용자의 특정 날짜에 대한 모든 복용 기록을 조회합니다.
+     *
+     * @param userId 조회할 사용자의 ID
+     * @param date   조회할 날짜 (yyyy-MM-dd 형식의 문자열)
+     * @return 해당 사용자와 날짜에 해당하는 DosageRecord 리스트
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
      */
-    public static List<DosageRecord> getDosageRecordsForUser(int userId, LocalDate startDate, LocalDate endDate) throws SQLException {
+    public List<DosageRecord> findRecordsByUserIdAndDate(int userId, String date) throws SQLException {
         List<DosageRecord> records = new ArrayList<>();
-        //변경점 3: SELECT 쿼리에 is_skipped, rescheduled_time 컬럼 추가
-        // 날짜 범위는 scheduled_time의 날짜 부분만 비교하도록 합니다.
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped FROM DosageRecords " +
-                "WHERE user_id = ? AND SUBSTR(scheduled_time, 1, 10) BETWEEN ? AND ? ORDER BY scheduled_time ASC";
+        String sql = "SELECT * FROM DosageRecords WHERE user_id = ? AND SUBSTR(scheduled_time, 1, 10) = ? ORDER BY scheduled_time ASC";
 
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, userId);
-            pstmt.setString(2, startDate.format(DATE_FORMATTER));
-            pstmt.setString(3, endDate.format(DATE_FORMATTER));
+            pstmt.setString(2, date);
 
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    int recordId = rs.getInt("record_id");
-                    int medId = rs.getInt("med_id");
-                    LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
-                    LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
-                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time")); //rescheduled_time 읽어오기
-                    boolean isSkipped = rs.getBoolean("is_skipped"); //is_skipped 읽어오기
-
-                    records.add(new DosageRecord(recordId, userId, medId, scheduledTime, actualTakenTime, rescheduledTime, isSkipped)); //생성자 업데이트
+                    records.add(new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")), // rescheduled_time 추가
+                            rs.getBoolean("is_skipped") // is_skipped 추가
+                    ));
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error getting dosage records for user ID " + userId + " from " + startDate + " to " + endDate + ": " + e.getMessage());
+            System.err.println("Error finding records for user " + userId + " on date " + date + ": " + e.getMessage());
+            throw e;
+        }
+        return records;
+    }
+
+    /**
+     * 특정 사용자 ID, 약 ID, 예정 시간으로 복용 기록을 조회합니다.
+     * 이는 주로 특정 알람 시간에 대한 기록을 찾을 때 사용될 수 있습니다.
+     *
+     * @param userId        사용자 ID
+     * @param medId         약 ID
+     * @param scheduledTime 예정 시간 (정확히 일치하는 시간을 찾음)
+     * @return 해당하는 DosageRecord 객체, 없으면 null
+     * @throws SQLException 데이터베이스 오류 발생 시
+     */
+    public DosageRecord findRecordByUserIdMedIdAndScheduledTime(int userId, int medId, LocalDateTime scheduledTime) throws SQLException {
+        String sql = "SELECT * FROM DosageRecords WHERE user_id = ? AND med_id = ? AND scheduled_time = ?";
+        DosageRecord record = null;
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, medId);
+            pstmt.setString(3, scheduledTime.format(DATETIME_FORMATTER));
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    record = new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")),
+                            rs.getBoolean("is_skipped")
+                    );
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding record by user, med, and scheduled time: " + e.getMessage());
+            throw e;
+        }
+        return record;
+    }
+
+
+    /**
+     * 특정 사용자의 특정 날짜 범위에 대한 모든 복용 기록을 조회합니다.
+     * `actual_taken_time`이 NULL이 아니며 `is_skipped`가 0인 (즉, 실제로 복용했고 건너뛰지 않은) 기록만 가져옵니다.
+     *
+     * @param userId    조회할 사용자의 ID
+     * @param startDate 조회 시작 날짜 (yyyy-MM-dd 형식의 문자열)
+     * @param endDate   조회 종료 날짜 (yyyy-MM-dd 형식의 문자열)
+     * @return 해당 사용자 ID와 날짜 범위에 해당하는 DosageRecord 리스트
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
+     */
+    public List<DosageRecord> findRecordsByUserIdAndDateRange(int userId, String startDate, String endDate) throws SQLException {
+        List<DosageRecord> records = new ArrayList<>();
+        // actual_taken_time 이 null이 아니고, is_skipped 가 0인 (즉, 건너뛰지 않은) 기록만 가져오도록 쿼리 수정
+        String sql = "SELECT * FROM DosageRecords WHERE user_id = ? AND scheduled_time BETWEEN ? AND ? AND actual_taken_time IS NOT NULL AND is_skipped = 0 ORDER BY scheduled_time ASC";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, startDate + " 00:00:00"); // 시작일의 00시 00분 00초부터
+            pstmt.setString(3, endDate + " 23:59:59");   // 종료일의 23시 59분 59초까지
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")),
+                            rs.getBoolean("is_skipped")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding records for user " + userId + " in date range " + startDate + " to " + endDate + ": " + e.getMessage());
             throw e;
         }
         return records;
@@ -160,283 +240,180 @@ public class DosageRecordDao {
 
 
     /**
-     * 복용 기록의 실제 복용 시간과 건너뛰기 여부를 업데이트합니다.
-     * @param recordId 업데이트할 기록의 ID
-     * @param actualTakenTime 실제 복용 시간 (NULL일 수 있음)
-     * @param isSkipped 건너뛰기 여부
+     * 기존 복용 기록을 데이터베이스에서 업데이트합니다.
+     * recordId는 변경되지 않습니다.
+     *
+     * @param record 업데이트할 복용 기록 (DosageRecord 객체)
      * @return 업데이트 성공 시 true, 실패 시 false
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
      */
-    public static boolean updateDosageRecordStatus(int recordId, LocalDateTime actualTakenTime, boolean isSkipped) throws SQLException {
-        //변경점 4: UPDATE 쿼리에 is_skipped 컬럼 추가
-        String sql = "UPDATE DosageRecords SET actual_taken_time = ?, is_skipped = ? WHERE record_id = ?";
+    public boolean updateDosageRecord(DosageRecord record) throws SQLException {
+        String sql = "UPDATE DosageRecords SET user_id = ?, med_id = ?, scheduled_time = ?, actual_taken_time = ?, rescheduled_time = ?, is_skipped = ? WHERE record_id = ?";
 
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, toDbString(actualTakenTime));
-            pstmt.setInt(2, isSkipped ? 1 : 0); //is_skipped 값 설정
-            pstmt.setInt(3, recordId);
+            pstmt.setInt(1, record.getUserId());
+            pstmt.setInt(2, record.getMedId());
+            pstmt.setString(3, convertLocalDateTimeToString(record.getScheduledTime()));
+            pstmt.setString(4, convertLocalDateTimeToString(record.getActualTakenTime()));
+            pstmt.setString(5, convertLocalDateTimeToString(record.getRescheduledTime())); // rescheduled_time 추가
+            pstmt.setBoolean(6, record.isSkipped()); // is_skipped 추가
+            pstmt.setInt(7, record.getRecordId());
 
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
         } catch (SQLException e) {
-            System.err.println("Error updating dosage record status for record ID " + recordId + ": " + e.getMessage());
+            System.err.println("Error updating dosage record with ID " + record.getRecordId() + ": " + e.getMessage());
             throw e;
         }
     }
 
     /**
-     * 특정 복용 기록의 재조정된 알람 시간을 업데이트합니다.
-     * @param userId 사용자 ID
-     * @param medId 약 ID
-     * @param originalScheduledTime 원래 예정된 복용 시간
-     * @param newRescheduledTime 새로 재조정된 시간
+     * 특정 복용 기록의 실제 복용 시간을 업데이트합니다.
+     *
+     * @param recordId        업데이트할 복용 기록의 ID
+     * @param actualTakenTime 실제 복용 시간 (LocalDateTime 객체)
+     * @param isSkipped       복용 건너뛰기 여부
      * @return 업데이트 성공 시 true, 실패 시 false
+     * @throws SQLException 데이터베이스 오류 발생 시
      */
-    public static boolean updateRescheduledTime(int userId, int medId, LocalDateTime originalScheduledTime, LocalDateTime newRescheduledTime) throws SQLException {
-        //변경점 5: 이 메서드는 기존 DosageRecord 모델에 `rescheduled_time`이 추가되었을 때 같이 추가된 것으로 보입니다.
-        // 현재 이 메서드 자체는 변경할 필요가 없습니다.
-        String sql = "UPDATE DosageRecords SET rescheduled_time = ? WHERE user_id = ? AND med_id = ? AND scheduled_time = ?";
-
+    public boolean updateActualTakenTime(int recordId, LocalDateTime actualTakenTime, boolean isSkipped) throws SQLException {
+        String sql = "UPDATE DosageRecords SET actual_taken_time = ?, is_skipped = ? WHERE record_id = ?";
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, convertLocalDateTimeToString(actualTakenTime));
+            pstmt.setBoolean(2, isSkipped);
+            pstmt.setInt(3, recordId);
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error updating actual taken time for record ID " + recordId + ": " + e.getMessage());
+            throw e;
+        }
+    }
 
-            pstmt.setString(1, toDbString(newRescheduledTime));
+    /**
+     * 예정된 복용 시간을 기준으로 재조정된 복용 시간을 업데이트합니다.
+     *
+     * @param userId           사용자 ID
+     * @param medId            약 ID
+     * @param originalScheduledTime 원본 예정 시간
+     * @param newRescheduledTime    새로운 재조정 시간
+     * @return 업데이트 성공 시 true, 실패 시 false
+     * @throws SQLException 데이터베이스 오류 발생 시
+     */
+    public boolean updateRescheduledTime(int userId, int medId, LocalDateTime originalScheduledTime, LocalDateTime newRescheduledTime) throws SQLException {
+        // 기존 scheduled_time, user_id, med_id를 조건으로 사용하여 해당 레코드를 찾고 rescheduled_time만 업데이트합니다.
+        // 이 때 actual_taken_time이 NULL인 경우에만 업데이트하도록 조건을 추가하여, 이미 복용한 기록은 재조정되지 않도록 합니다.
+        String sql = "UPDATE DosageRecords SET rescheduled_time = ? WHERE user_id = ? AND med_id = ? AND scheduled_time = ? AND actual_taken_time IS NULL";
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, convertLocalDateTimeToString(newRescheduledTime));
             pstmt.setInt(2, userId);
             pstmt.setInt(3, medId);
-            pstmt.setString(4, toDbString(originalScheduledTime));
-
+            pstmt.setString(4, convertLocalDateTimeToString(originalScheduledTime));
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
-
         } catch (SQLException e) {
-            System.err.println("Error updating rescheduled time for user ID " + userId + ", med ID " + medId + ", scheduled time " + originalScheduledTime + ": " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error updating rescheduled time for user " + userId + ", med " + medId + ": " + e.getMessage());
             throw e;
         }
     }
 
     /**
-     * 특정 사용자(userId)의 모든 복용 기록에서 재조정된 알람 시간을 NULL로 초기화합니다.
-     * (예: 사용자가 생활 패턴을 수정했을 때 이전에 계산된 재조정 시간을 모두 지울 때 사용)
+     * 특정 사용자의 모든 복용 기록에서 재조정된 알람 시간을 NULL로 초기화합니다.
+     *
      * @param userId 재조정 시간을 초기화할 사용자의 ID
-     * @return 초기화된 행이 1개 이상 있으면 true, 아니면 false
+     * @return 초기화 성공 여부 (true: 성공, false: 실패)
+     * @throws SQLException 데이터베이스 오류 발생 시
      */
-    public static boolean resetAllRescheduledTimes(int userId) throws SQLException {
+    public boolean resetAllRescheduledTimes(int userId) throws SQLException {
         String sql = "UPDATE DosageRecords SET rescheduled_time = NULL WHERE user_id = ?";
-
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
             pstmt.setInt(1, userId);
-
             int affectedRows = pstmt.executeUpdate();
             return affectedRows > 0;
-
         } catch (SQLException e) {
             System.err.println("Error resetting all rescheduled times for user ID " + userId + ": " + e.getMessage());
-            e.printStackTrace();
             throw e;
         }
     }
 
-    //변경점 6: 특정 사용자의 특정 기간 동안 생성된 총 알람 개수 가져오기
-    /**
-     * 특정 사용자의 특정 기간 동안 (오늘로부터 `days`일 전까지) 생성된 모든 알람(예정 기록)의 개수를 가져옵니다.
-     * @param userId 사용자 ID
-     * @param days 오늘로부터 과거로 계산할 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 해당 기간 동안 생성된 총 알람 개수
-     */
-    public static int getTotalScheduledAlarmsCount(int userId, int days) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM DosageRecords WHERE user_id = ? AND scheduled_time >= datetime('now', ? || ' days')";
-        int count = 0;
 
+    /**
+     * 특정 recordId를 가진 복용 기록을 데이터베이스에서 삭제합니다.
+     *
+     * @param recordId 삭제할 복용 기록의 ID
+     * @return 삭제 성공 시 true, 실패 시 false
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
+     */
+    public boolean deleteDosageRecord(int recordId) throws SQLException {
+        String sql = "DELETE FROM DosageRecords WHERE record_id = ?";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, recordId);
+
+            int affectedRows = pstmt.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.err.println("Error deleting dosage record with ID " + recordId + ": " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * 특정 약(medId)에 대한 모든 복용 기록을 삭제합니다.
+     * 약이 삭제될 때 해당 약에 대한 모든 복용 기록도 함께 삭제할 때 사용됩니다.
+     *
+     * @param medId 삭제할 약의 ID
+     * @return 삭제된 기록의 수
+     * @throws SQLException 데이터베이스 오류 발생 시
+     */
+    public int deleteRecordsByMedId(int medId) throws SQLException {
+        String sql = "DELETE FROM DosageRecords WHERE med_id = ?";
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, medId);
+            return pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error deleting dosage records for med ID " + medId + ": " + e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * 특정 사용자(userId)의 모든 복용 기록을 삭제합니다.
+     * 사용자 계정이 삭제될 때 관련 복용 기록도 삭제할 때 사용됩니다.
+     *
+     * @param userId 삭제할 사용자의 ID
+     * @return 삭제된 기록의 수
+     * @throws SQLException 데이터베이스 오류 발생 시
+     */
+    public int deleteRecordsByUserId(int userId) throws SQLException {
+        String sql = "DELETE FROM DosageRecords WHERE user_id = ?";
         try (Connection conn = DBManager.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userId);
-            pstmt.setString(2, "-" + (days - 1)); //오늘을 포함하여 N일 전까지이므로 (N-1) days 사용
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    count = rs.getInt(1);
-                }
-            }
+            return pstmt.executeUpdate();
         } catch (SQLException e) {
-            System.err.println("Error getting total scheduled alarms count for user ID " + userId + " for last " + days + " days: " + e.getMessage());
+            System.err.println("Error deleting dosage records for user ID " + userId + ": " + e.getMessage());
             throw e;
         }
-        return count;
-    }
-
-    //변경점 7: 특정 사용자의 특정 기간 동안 복용 성공한 알람 개수 가져오기
-    /**
-     * 특정 사용자의 특정 기간 동안 (오늘로부터 `days`일 전까지) 성공적으로 복용된 알람의 개수를 가져옵니다.
-     * 성공 기준: actual_taken_time이 NULL이 아니고 is_skipped가 0(false)인 경우.
-     * @param userId 사용자 ID
-     * @param days 오늘로부터 과거로 계산할 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 해당 기간 동안 복용 성공한 알람 개수
-     */
-    public static int getSuccessfulDosageAlarmsCount(int userId, int days) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM DosageRecords WHERE user_id = ? AND actual_taken_time IS NOT NULL AND is_skipped = 0 AND scheduled_time >= datetime('now', ? || ' days')";
-        int count = 0;
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setInt(1, userId);
-            pstmt.setString(2, "-" + (days - 1));
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    count = rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting successful dosage alarms count for user ID " + userId + " for last " + days + " days: " + e.getMessage());
-            throw e;
-        }
-        return count;
     }
 
     /**
-     * 특정 약 ID와 사용자 ID에 대한 지난 `days`일 동안의 실제 복용 기록을 가져옵니다.
-     * 실제 복용 기록만 필요하며, is_skipped가 false인 기록만 포함합니다.
-     * @param userId 사용자 ID
-     * @param medId 약 ID
-     * @param days 과거로부터 가져올 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 복용 기록 리스트
+     * 지정된 기간 동안의 시간대별 복용 성공 횟수를 조회합니다.
+     * 실제 복용 시간(actual_taken_time)이 존재하고, 건너뛰지 않은(`is_skipped = 0`) 기록만 카운트합니다.
+     *
+     * @param days 최근 N일
+     * @return 시간대(0-23)를 키로, 해당 시간대의 복용 성공 횟수를 값으로 하는 맵
+     * @throws SQLException 데이터베이스 오류 발생 시
      */
-    public static List<DosageRecord> getRecentTakenRecords(int userId, int medId, int days) throws SQLException {
-        //변경점 8: SELECT 쿼리에 is_skipped, rescheduled_time 컬럼 추가
-        // is_skipped = false 조건 추가
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped " +
-                "FROM DosageRecords " +
-                "WHERE user_id = ? AND med_id = ? AND actual_taken_time IS NOT NULL AND is_skipped = 0 " + // is_skipped 조건 추가
-                "AND scheduled_time >= datetime('now', ? || ' days') " +
-                "ORDER BY scheduled_time DESC";
-
-        List<DosageRecord> records = new ArrayList<>();
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, userId);
-            pstmt.setInt(2, medId);
-            pstmt.setString(3, "-" + (days - 1)); //오늘을 포함하여 N일 전까지이므로 (N-1) days 사용
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    int recordId = rs.getInt("record_id");
-                    LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
-                    LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
-                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time"));
-                    boolean isSkipped = rs.getBoolean("is_skipped");
-
-                    DosageRecord record = new DosageRecord(recordId, userId, medId,
-                            scheduledTime, actualTakenTime, rescheduledTime, isSkipped);
-                    records.add(record);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting recent taken records for user ID " + userId + ", med ID " + medId + ": " + e.getMessage());
-            throw e;
-        }
-        return records;
-    }
-
-    /**
-     * 특정 약 ID와 사용자 ID에 대한 지난 `days`일 동안의 모든 예정/재조정 알람 기록을 가져옵니다.
-     * actual_taken_time이 NULL인 기록만 포함합니다.
-     * @param userId 사용자 ID
-     * @param medId 약 ID
-     * @param days 과거로부터 가져올 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 복용 기록 리스트 (예정/재조정 알람)
-     */
-    public static List<DosageRecord> getRecentScheduledAndRescheduledRecords(int userId, int medId, int days) throws SQLException {
-        //변경점 9: SELECT 쿼리에 is_skipped, rescheduled_time 컬럼 추가
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped " +
-                "FROM DosageRecords " +
-                "WHERE user_id = ? AND med_id = ? AND actual_taken_time IS NULL " + // 실제 복용 시간이 NULL인 경우
-                "AND (scheduled_time >= datetime('now', ? || ' days') OR rescheduled_time >= datetime('now', ? || ' days')) " + // 예정 또는 재조정 시간이 범위 내인 경우
-                "ORDER BY scheduled_time DESC";
-
-        List<DosageRecord> records = new ArrayList<>();
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, userId);
-            pstmt.setInt(2, medId);
-            pstmt.setString(3, "-" + (days - 1)); // 예정 시간 범위
-            pstmt.setString(4, "-" + (days - 1)); // 재조정 시간 범위
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    int recordId = rs.getInt("record_id");
-                    LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
-                    LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
-                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time"));
-                    boolean isSkipped = rs.getBoolean("is_skipped");
-
-                    DosageRecord record = new DosageRecord(recordId, userId, medId,
-                            scheduledTime, actualTakenTime, rescheduledTime, isSkipped);
-                    records.add(record);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting recent scheduled/rescheduled records for user ID " + userId + ", med ID " + medId + ": " + e.getMessage());
-            throw e;
-        }
-        return records;
-    }
-
-    // <<-- 변경점 10: 시간대별 생성된 알람 수 가져오기 -->>
-    /**
-     * 특정 기간 동안 (오늘로부터 `days`일 전까지) 모든 사용자에 대해 시간대별로 생성된 총 알람(예정 기록)의 개수를 가져옵니다.
-     * 반환되는 맵의 키는 시간대(0-23), 값은 해당 시간대에 생성된 알람 개수입니다.
-     * @param days 오늘로부터 과거로 계산할 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 시간대별 총 알람 개수를 담은 Map<Integer, Integer>
-     * @throws SQLException 데이터베이스 접근 오류 발생 시
-     */
-    public static Map<Integer, Integer> getTotalScheduledAlarmsByHour(int days) throws SQLException {
-        // SQLite의 strftime('%H', datetime) 함수는 24시간 형식의 시간(00-23)을 반환합니다.
-        // scheduled_time 또는 rescheduled_time 중 더 늦은 시간을 기준으로 합니다.
-        // 복용 예정이거나 재조정된 알람만 카운트합니다.
-        String sql = "SELECT CAST(strftime('%H', COALESCE(rescheduled_time, scheduled_time)) AS INTEGER) AS hour_of_day, COUNT(*) AS count " +
-                "FROM DosageRecords " +
-                "WHERE COALESCE(rescheduled_time, scheduled_time) >= datetime('now', ? || ' days') " +
-                "GROUP BY hour_of_day ORDER BY hour_of_day";
-
-        Map<Integer, Integer> hourlyCounts = new HashMap<>();
-        // 0부터 23까지 모든 시간대를 0으로 초기화
-        for (int i = 0; i < 24; i++) {
-            hourlyCounts.put(i, 0);
-        }
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1, "-" + (days - 1)); // 오늘을 포함하여 N일 전까지
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    int hour = rs.getInt("hour_of_day");
-                    int count = rs.getInt("count");
-                    hourlyCounts.put(hour, count);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting total scheduled alarms by hour for last " + days + " days: " + e.getMessage());
-            throw e;
-        }
-        return hourlyCounts;
-    }
-
-    // <<-- 변경점 11: 시간대별 약 복용 성공 횟수 가져오기 -->>
-    /**
-     * 특정 기간 동안 (오늘로부터 `days`일 전까지) 모든 사용자에 대해 시간대별로 성공적으로 복용된 알람의 개수를 가져옵니다.
-     * 성공 기준: actual_taken_time이 NULL이 아니고 is_skipped가 0(false)인 경우.
-     * 반환되는 맵의 키는 시간대(0-23), 값은 해당 시간대에 성공한 복용 개수입니다.
-     * @param days 오늘로부터 과거로 계산할 일수 (예: 7이면 오늘 포함 지난 7일)
-     * @return 시간대별 성공 복용 개수를 담은 Map<Integer, Integer>
-     * @throws SQLException 데이터베이스 접근 오류 발생 시
-     */
-    public static Map<Integer, Integer> getSuccessfulDosagesByHour(int days) throws SQLException {
+    public Map<Integer, Integer> getSuccessfulDosageCountsByHour(int days) throws SQLException {
         // SQLite의 strftime('%H', datetime) 함수는 24시간 형식의 시간(00-23)을 반환합니다.
         // 실제 복용 시간(actual_taken_time)을 기준으로 합니다.
         String sql = "SELECT CAST(strftime('%H', actual_taken_time) AS INTEGER) AS hour_of_day, COUNT(*) AS count " +
@@ -462,9 +439,51 @@ public class DosageRecordDao {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error getting successful dosages by hour for last " + days + " days: " + e.getMessage());
+            System.err.println("Error getting successful dosage counts by hour: " + e.getMessage());
             throw e;
         }
         return hourlyCounts;
+    }
+
+    /**
+     * 특정 사용자의 특정 날짜 범위에 대한 아직 복용하지 않은 (actual_taken_time이 NULL인) 복용 기록을 조회합니다.
+     * 이 메서드는 미래의 예정된 알람 시간을 가져올 때 사용됩니다.
+     *
+     * @param userId    조회할 사용자의 ID
+     * @param startDate 조회 시작 날짜 (yyyy-MM-dd 형식의 문자열)
+     * @param endDate   조회 종료 날짜 (yyyy-MM-dd 형식의 문자열)
+     * @return 해당 사용자 ID와 날짜 범위에 해당하는 DosageRecord 리스트
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
+     */
+    public List<DosageRecord> findRecordsByUserIdAndDateRangeForFuture(int userId, String startDate, String endDate) throws SQLException {
+        List<DosageRecord> records = new ArrayList<>();
+        // actual_taken_time 이 null인 기록만 가져오도록 쿼리 수정
+        String sql = "SELECT * FROM DosageRecords WHERE user_id = ? AND scheduled_time BETWEEN ? AND ? AND actual_taken_time IS NULL ORDER BY scheduled_time ASC";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, startDate + " 00:00:00"); // 시작일의 00시 00분 00초부터
+            pstmt.setString(3, endDate + " 23:59:59");   // 종료일의 23시 59분 59초까지
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    records.add(new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")),
+                            rs.getBoolean("is_skipped")
+                    ));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding future records for user " + userId + " in date range " + startDate + " to " + endDate + ": " + e.getMessage());
+            throw e;
+        }
+        return records;
     }
 }

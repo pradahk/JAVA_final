@@ -1,6 +1,7 @@
 package com.smwujava.medicineapp.test;
 
 import com.smwujava.medicineapp.service.AlarmResponseHandler;
+import com.smwujava.medicineapp.dao.DosageRecordDao; // DosageRecordDao를 import 해야 합니다.
 
 import java.time.LocalDateTime;
 import java.util.Scanner;
@@ -20,7 +21,15 @@ public class AlarmTest {
 
         String choice = sc.nextLine();
 
-        // 사용자의 응답 처리
-        AlarmResponseHandler.handleUserResponse(choice, userId, medId, scheduledTime);
+        // DosageRecordDao 인스턴스 생성
+        DosageRecordDao dosageRecordDao = new DosageRecordDao(); //
+
+        // AlarmResponseHandler 인스턴스 생성 시 dosageRecordDao 주입
+        AlarmResponseHandler alarmResponseHandler = new AlarmResponseHandler(dosageRecordDao); //
+
+        // 사용자의 응답 처리 (인스턴스를 통해 메서드 호출)
+        alarmResponseHandler.handleUserResponse(choice, userId, medId, scheduledTime); //
+
+        sc.close(); // Scanner 닫기
     }
 }
