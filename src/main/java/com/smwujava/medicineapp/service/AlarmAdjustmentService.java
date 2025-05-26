@@ -23,7 +23,8 @@ public class AlarmAdjustmentService {
     public static Optional<LocalDateTime> suggestAdjustedTime(int userId, int medId) {
         List<DosageRecord> records;
         try {
-            records = DosageRecordDao.getRecentDosageRecords(userId, medId, ANALYSIS_DAYS);
+            // DosageRecordDao에 getRecentDosageRecords 대신 getRecentTakenRecords를 사용
+            records = DosageRecordDao.getRecentTakenRecords(userId, medId, ANALYSIS_DAYS);
         } catch (SQLException e) {
             e.printStackTrace();
             return Optional.empty();
@@ -46,6 +47,8 @@ public class AlarmAdjustmentService {
 
         for (Map.Entry<Duration, Integer> entry : delayFrequency.entrySet()) {
             if (entry.getValue() >= THRESHOLD_COUNT) {
+                // 이 부분은 제안된 조정 시간을 어떻게 계산할지에 따라 달라질 수 있습니다.
+                // 현재는 단순히 1시를 기준으로 delay를 더하고 있습니다.
                 return Optional.of(LocalDateTime.now().withHour(1).plus(entry.getKey()));
             }
         }

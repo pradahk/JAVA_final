@@ -18,7 +18,7 @@ public class UserService {
     public static boolean register(String username, String password) {
         try {
             // 사용자 이름 중복 확인
-            if (UserDao.existsByUsername(username)) {
+            if (UserDao.findUserByUsername(username) != null) { // 수정된 부분
                 System.out.println("이미 존재하는 사용자 이름입니다.");
                 return false;
             }
@@ -32,9 +32,9 @@ public class UserService {
                 return false;
             }
 
-            // 새로운 User 객체 생성 시 autoLogin은 기본값으로 false 설정
-            User newUser = new User(username, password, false);
-            // 사용자 정보를 DB에 삽입하고, 생성된 user_id를 받습니다. UserDao.insertUser는 이제 int(generatedId)를 반환합니다.
+            // 새로운 User 객체 생성 시 autoLogin은 기본값으로 false, isAdmin은 false 설정 (수정된 부분)
+            User newUser = new User(username, password, false, false);
+            // 사용자 정보를 DB에 삽입하고, 생성된 user_id를 받습니다.
             int generatedId = UserDao.insertUser(newUser);
             // generatedId가 -1이 아니면 성공으로 간주
             return generatedId != -1;
@@ -55,10 +55,11 @@ public class UserService {
      */
     public static boolean login(String username, String password, boolean rememberMe) {
         try {
-            // 사용자 이름과 비밀번호로 사용자 찾기
-            User user = UserDao.findUserByUsernameAndPassword(username, password);
+            // 사용자 이름으로 사용자 찾기 (수정된 부분)
+            User user = UserDao.findUserByUsername(username);
 
-            if (user != null) { // 로그인 성공
+            if (user != null && user.getPassword().equals(password)) { // 비밀번호 비교 추가
+                // 로그인 성공
                 if (rememberMe) {
                     // 자동 로그인 정보 저장 (파일 시스템 등)
                     AutoLoginUtil.saveAutoLoginUser(user.getUserId(), user.getUsername(), user.getPassword());
@@ -88,10 +89,7 @@ public class UserService {
      */
     public static User checkAutoLogin() {
         try {
-            // AutoLoginUtil에서 저장된 자동 로그인 정보를 가져옵니다 (예: userId, username, password)
-            // 여기서는 UserDao에서 직접 auto_login 필드를 확인하는 로직을 사용합니다.
             User autoLoginUser = UserDao.findAutoLoginUser();
-
             if (autoLoginUser != null) {
                 return autoLoginUser;
             }
@@ -128,9 +126,21 @@ public class UserService {
                 return false;
             }
 
-            // 비밀번호 업데이트
+            // <<-- 비밀번호 업데이트 로직 변경 시작 -->>
+            // 1. 현재 사용자 정보 조회
+            User userToUpdate = UserDao.findUserByUsername(username);
+            if (userToUpdate == null) {
+                System.out.println("사용자를 찾을 수 없습니다.");
+                return false;
+            }
+
+            // 2. User 객체의 비밀번호만 업데이트
+            userToUpdate.setPassword(newPassword);
+
+            // 3. updateUser 메서드를 사용하여 DB에 반영
             // TODO: 실제 앱에서는 newPassword를 해시화하여 DAO에 전달해야 합니다.
-            return UserDao.updatePassword(username, newPassword);
+            return UserDao.updateUser(userToUpdate);
+            // <<-- 비밀번호 업데이트 로직 변경 끝 -->>
 
         } catch (SQLException e) {
             System.err.println("비밀번호 수정 중 데이터베이스 오류 발생: " + e.getMessage());
@@ -148,13 +158,23 @@ public class UserService {
     public static boolean changeUsername(String currentUsername, String newUsername) {
         try {
             // 새 사용자 이름 중복 확인
-            if (UserDao.existsByUsername(newUsername)) {
+            if (UserDao.findUserByUsername(newUsername) != null) { // 수정된 부분
                 System.out.println("이미 존재하는 아이디입니다.");
                 return false;
             }
 
-            // 사용자 이름 업데이트
-            return UserDao.updateUsername(currentUsername, newUsername);
+            // 사용자 이름 업데이트를 위해 현재 사용자 정보 조회
+            User userToUpdate = UserDao.findUserByUsername(currentUsername);
+            if (userToUpdate == null) {
+                System.out.println("현재 사용자를 찾을 수 없습니다.");
+                return false;
+            }
+
+            // User 객체의 username만 업데이트
+            userToUpdate.setUsername(newUsername);
+
+            // updateUser 메서드를 사용하여 DB에 반영
+            return UserDao.updateUser(userToUpdate);
 
         } catch (SQLException e) {
             System.err.println("사용자 이름 수정 중 데이터베이스 오류 발생: " + e.getMessage());
