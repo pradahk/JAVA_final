@@ -55,7 +55,7 @@ public class DosageRecordDao {
     public static int insertDosageRecord(DosageRecord record) throws SQLException {
         // DB 스키마에 record_date 컬럼이 여전히 존재하므로, 해당 컬럼에도 값을 삽입해야 합니다.
         // record_date는 scheduled_time의 날짜 부분에서 추출하여 사용합니다.
-        String sql = "INSERT INTO DosageRecords (user_id, med_id, record_date, scheduled_time, actual_taken_time, rescheduled_time) VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO DosageRecords (user_id, med_id, record_date, scheduled_time, actual_taken_time, rescheduled_time, is_skipped) VALUES (?, ?, ?, ?, ?, ?, ?)";
         int generatedId = -1;
 
         try (Connection conn = DBManager.getConnection();
@@ -76,6 +76,7 @@ public class DosageRecordDao {
 
             pstmt.setString(5, toDbString(record.getActualTakenTime())); // actualTakenTime이 null이면 DB에 NULL로 저장
             pstmt.setString(6, toDbString(record.getRescheduledTime())); // rescheduledTime이 null이면 DB에 NULL로 저장
+            pstmt.setBoolean(7, record.isSkipped());
 
             int affectedRows = pstmt.executeUpdate();
 
@@ -104,7 +105,7 @@ public class DosageRecordDao {
      */
     public static List<DosageRecord> findRecordsByUserIdAndDateRange(int userId, String startDate, String endDate) throws SQLException {
         // `record_date` 컬럼을 사용하여 날짜 범위를 조회합니다.
-        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time FROM DosageRecords WHERE user_id = ? AND record_date BETWEEN ? AND ? ORDER BY scheduled_time";
+        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is skipped FROM DosageRecords WHERE user_id = ? AND record_date BETWEEN ? AND ? ORDER BY scheduled_time";
         List<DosageRecord> recordList = new ArrayList<>();
 
         try (Connection conn = DBManager.getConnection();
@@ -124,9 +125,10 @@ public class DosageRecordDao {
                     LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
                     LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
                     LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time"));
+                    boolean isSkipped = rs.getBoolean("is_skipped");
 
                     // DosageRecord 객체 생성 시 LocalDateTime 타입 생성자 사용
-                    DosageRecord record = new DosageRecord(recordId, foundUserId, medId, scheduledTime, actualTakenTime, rescheduledTime);
+                    DosageRecord record = new DosageRecord(recordId, foundUserId, medId, scheduledTime, actualTakenTime, rescheduledTime, isSkipped);
                     recordList.add(record);
                 }
             }
@@ -218,5 +220,48 @@ public class DosageRecordDao {
             e.printStackTrace();
             throw e;
         }
+    }
+
+    /**
+     * 특정 사용자와 약 ID에 대해 최근 N일 동안 복용한 기록을 조회합니다.
+     * 스킵한 기록은 제외되며, 실제 복용된 시간 기준으로 최근 기록을 가져옵니다.
+     *
+     * @param userId 사용자 ID
+     * @param medId 약 ID
+     * @param days 최근 N일
+     * @return 최근 복용 기록 리스트
+     * @throws SQLException DB 접근 오류 시
+     */
+    public static List<DosageRecord> getRecentDosageRecords(int userId, int medId, int days) throws SQLException {
+        String sql = "SELECT record_id, user_id, med_id, scheduled_time, actual_taken_time, rescheduled_time, is_skipped " +
+                "FROM DosageRecords " +
+                "WHERE user_id = ? AND med_id = ? AND is_skipped = false " +
+                "AND actual_taken_time >= datetime('now', ? || ' days') " +
+                "ORDER BY actual_taken_time DESC";
+
+        List<DosageRecord> records = new ArrayList<>();
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setInt(2, medId);
+            pstmt.setString(3, "-" + days);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    int recordId = rs.getInt("record_id");
+                    LocalDateTime scheduledTime = fromDbString(rs.getString("scheduled_time"));
+                    LocalDateTime actualTakenTime = fromDbString(rs.getString("actual_taken_time"));
+                    LocalDateTime rescheduledTime = fromDbString(rs.getString("rescheduled_time"));
+                    boolean isSkipped = rs.getBoolean("is_skipped");
+
+                    DosageRecord record = new DosageRecord(recordId, userId, medId,
+                            scheduledTime, actualTakenTime, rescheduledTime, isSkipped);
+                    records.add(record);
+                }
+            }
+        }
+        return records;
     }
 }

@@ -9,8 +9,7 @@ import java.sql.ResultSet; // 테이블 존재 여부 확인에 사용
 
 public class DBManager {
     // SQLite JDBC URL - './'는 현재 애플리케이션이 실행되는 디렉토리를 의미합니다.
-    private static final String DB_URL = "jdbc:sqlite:./pharm_reminder.db";
-
+    private static final String DB_URL = "jdbc:sqlite:" + System.getProperty("user.dir") + "/pharm_reminder.db";
     private static final String CREATE_SCHEMA_SQL =
             "PRAGMA foreign_keys = ON;" +
                     "CREATE TABLE IF NOT EXISTS Users (" +
@@ -46,6 +45,8 @@ public class DBManager {
                     "   record_date TEXT NOT NULL," +                 // 복용 기록 날짜 (예: "YYYY-MM-DD") (비어있으면 안됨)
                     "   scheduled_time TEXT NOT NULL," +             // 복용 예정 시간 (예: "YYYY-MM-DD HH:MM") (비어있으면 안됨)
                     "   actual_taken_time TEXT," +                   // 실제 복용한 시간 (예: "YYYY-MM-DD HH:MM", 복용 안 했으면 NULL)
+                    "   rescheduled_time TEXT," +           // 추가: 보정된 복용 시간
+                    "   is_skipped BOOLEAN DEFAULT 0," +    // 추가: 스킵 여부
                     "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
                     "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
                     "   UNIQUE (user_id, med_id, record_date)" +     // 같은 사용자가 같은 날 같은 약 기록은 중복 불가

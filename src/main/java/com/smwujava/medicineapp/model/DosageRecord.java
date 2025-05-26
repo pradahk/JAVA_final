@@ -12,18 +12,21 @@ public class DosageRecord {
     private LocalDateTime actualTakenTime;  // 실제 복용 시간 (DB에서 NULL 허용)
     private LocalDateTime rescheduledTime;  // <<< 변경점 3: 재조정된 복용 시간 (DATETIME, DB에서 NULL 허용)
 
+    private boolean isSkipped;
+
     // 생성자
     public DosageRecord() {
     }
 
     // 변경점 4: 모든 필드 값을 받는 생성자 업데이트 (LocalDateTime 타입 반영)
-    public DosageRecord(int recordId, int userId, int medId, LocalDateTime scheduledTime, LocalDateTime actualTakenTime, LocalDateTime rescheduledTime) {
+    public DosageRecord(int recordId, int userId, int medId, LocalDateTime scheduledTime, LocalDateTime actualTakenTime, LocalDateTime rescheduledTime, boolean isSkipped) {
         this.recordId = recordId;
         this.userId = userId;
         this.medId = medId;
         this.scheduledTime = scheduledTime;
         this.actualTakenTime = actualTakenTime;
         this.rescheduledTime = rescheduledTime;
+        this.isSkipped = isSkipped;
     }
 
     /**
@@ -42,6 +45,7 @@ public class DosageRecord {
         this.actualTakenTime = null; // 실제 복용 시간은 아직 없으므로 null로 설정
         this.rescheduledTime = null; // 재조정된 시간도 처음에는 null로 설정
         // recordId는 DB에서 자동 할당될 예정이므로 이 생성자에서는 설정하지 않습니다.
+        this.isSkipped = false;
     }
 
     // Getter 메서드
@@ -66,6 +70,7 @@ public class DosageRecord {
     public LocalDateTime getRescheduledTime() {
         return rescheduledTime;
     }
+    public boolean isSkipped() { return isSkipped; }
 
     //Setter 메서드
     public void setRecordId(int recordId) {
@@ -89,6 +94,7 @@ public class DosageRecord {
     public void setRescheduledTime(LocalDateTime rescheduledTime) {
         this.rescheduledTime = rescheduledTime;
     }
+    public void setSkipped(boolean skipped) { this.isSkipped = skipped; }
 
     //기타 메서드
     @Override
@@ -100,6 +106,7 @@ public class DosageRecord {
                 ", scheduledTime=" + scheduledTime +
                 ", actualTakenTime=" + actualTakenTime + // null일 수 있음을 고려
                 ", rescheduledTime=" + rescheduledTime +
+                ", isSkipped=" + isSkipped +
                 '}';
     }
 
