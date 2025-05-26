@@ -1,13 +1,29 @@
 package com.smwujava.medicineapp.ui;
 
+import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
 
 import javax.swing.*;
 import java.awt.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class TestMedicationSettings {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
+            DBManager.initializeDatabase();
+
+            // 테스트용 사용자 생성
+            try (Connection conn = DBManager.getConnection();
+                 Statement stmt = conn.createStatement()) {
+                stmt.executeUpdate("INSERT INTO Users (username, password, auto_login) VALUES ('testuser', 'password', 1);");
+                System.out.println("Test user created.");
+            } catch (SQLException e) {
+                System.err.println("User insert failed: " + e.getMessage());
+            }
+
+
             JFrame frame = new JFrame("💊 약 설정 테스트");
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setSize(400, 600);

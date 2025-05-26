@@ -2,11 +2,10 @@ package com.smwujava.medicineapp.service;
 
 import com.smwujava.medicineapp.dao.UserDao;
 import com.smwujava.medicineapp.model.User;
-import com.smwujava.medicineapp.util.AutoLoginUtil; // AutoLoginUtil 사용 시 import 유지
+import com.smwujava.medicineapp.util.AutoLoginUtil;
 import java.sql.SQLException;
 
 public class UserService {
-
     private UserService() {
     }
 
@@ -23,13 +22,11 @@ public class UserService {
                 System.out.println("이미 존재하는 사용자 이름입니다.");
                 return false;
             }
-
             // 비밀번호 유효성 검사 (길이, 특수문자 등)
             if (password.length() < 7) {
                 System.out.println("비밀번호는 최소 7자 이상이어야 합니다.");
                 return false;
             }
-            // TODO: 실제 앱에서는 특수문자 포함 정규식 패턴 검토 및 강화 필요
             if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>/?].*")) {
                 System.out.println("비밀번호에는 특수문자가 포함되어야 합니다.");
                 return false;
@@ -37,11 +34,8 @@ public class UserService {
 
             // 새로운 User 객체 생성 시 autoLogin은 기본값으로 false 설정
             User newUser = new User(username, password, false);
-
-            // 사용자 정보를 DB에 삽입하고, 생성된 user_id를 받습니다.
-            // UserDao.insertUser는 이제 int(generatedId)를 반환합니다.
+            // 사용자 정보를 DB에 삽입하고, 생성된 user_id를 받습니다. UserDao.insertUser는 이제 int(generatedId)를 반환합니다.
             int generatedId = UserDao.insertUser(newUser);
-
             // generatedId가 -1이 아니면 성공으로 간주
             return generatedId != -1;
 
@@ -77,7 +71,7 @@ public class UserService {
                     UserDao.updateAutoLoginStatus(user.getUserId(), false);
                 }
                 return true;
-            } else { // 로그인 실패
+            } else {
                 return false;
             }
 
@@ -96,11 +90,9 @@ public class UserService {
         try {
             // AutoLoginUtil에서 저장된 자동 로그인 정보를 가져옵니다 (예: userId, username, password)
             // 여기서는 UserDao에서 직접 auto_login 필드를 확인하는 로직을 사용합니다.
-            User autoLoginUser = UserDao.findAutoLoginUser(); // auto_login = 1 인 사용자 찾기
+            User autoLoginUser = UserDao.findAutoLoginUser();
 
             if (autoLoginUser != null) {
-                // 추가적으로 AutoLoginUtil에 저장된 정보와 DB 정보가 일치하는지 확인할 수 있습니다.
-                // 예: AutoLoginUtil.getStoredUsername().equals(autoLoginUser.getUsername()) 등
                 return autoLoginUser;
             }
         } catch (SQLException e) {
@@ -108,26 +100,6 @@ public class UserService {
             e.printStackTrace();
         }
         return null;
-    }
-
-    /**
-     * 아이디 찾기 기능 (보안상 현재 미지원, 필요 시 구현 검토)
-     * @param password 사용자 비밀번호 (보안상 이 방법은 권장되지 않습니다)
-     * @return 사용자 이름 또는 null
-     */
-    public static String findUsername(String password) {
-        System.err.println("보안상 비밀번호로 아이디를 찾는 기능은 권장되지 않습니다. 다른 인증 방식을 고려하세요.");
-        return null; // 현재는 기능 미지원
-    }
-
-    /**
-     * 비밀번호 찾기 기능 (보안상 삭제 또는 재설정 로직으로 대체 권장)
-     * @param username 사용자 이름
-     * @return 비밀번호 (보안상 절대 반환하지 않아야 함) 또는 null
-     */
-    public static String findPassword(String username) {
-        System.err.println("보안상 아이디로 비밀번호를 찾는 기능은 권장되지 않습니다. 비밀번호 재설정 로직을 구현하세요.");
-        return null; // 보안상 반환하지 않음
     }
 
     /**

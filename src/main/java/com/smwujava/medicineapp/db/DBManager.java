@@ -9,7 +9,6 @@ import java.sql.ResultSet; // 테이블 존재 여부 확인에 사용
 
 public class DBManager {
     // SQLite JDBC URL - './'는 현재 애플리케이션이 실행되는 디렉토리를 의미합니다.
-    // 실제 배포 시에는 사용자의 문서 폴더 등 더 적합한 위치를 사용하는 것이 좋습니다.
     private static final String DB_URL = "jdbc:sqlite:./pharm_reminder.db";
 
     private static final String CREATE_SCHEMA_SQL =
@@ -18,7 +17,7 @@ public class DBManager {
                     "   user_id INTEGER PRIMARY KEY AUTOINCREMENT," + // 사용자 고유 ID (자동 증가)
                     "   username TEXT UNIQUE NOT NULL," +             // 사용자 로그인 ID (고유하며 비어있으면 안됨)
                     "   password TEXT NOT NULL," +                   // 비밀번호 (비어있으면 안됨)
-                    "   auto_login INTEGER DEFAULT 0" +               // 자동 로그인 여부 (0: false, 1: true) <<-- 추가된 컬럼
+                    "   auto_login INTEGER DEFAULT 0" +               // 자동 로그인 여부 (0: false, 1: true)
                     ");" +
                     "CREATE TABLE IF NOT EXISTS UserPatterns (" +
                     "   user_id INTEGER PRIMARY KEY," + // Users 테이블의 user_id를 참조하는 기본 키이자 외래 키
@@ -86,7 +85,7 @@ public class DBManager {
      */
     public static void initializeDatabase() {
         System.out.println("Initializing database..."); // 디버깅용 출력
-        // try-with-resources 구문으로 Connection 객체를 자동으로 닫도록 처리
+
         try (Connection conn = getConnection()) {
             if (conn != null) {
                 DatabaseMetaData meta = conn.getMetaData();
@@ -95,23 +94,28 @@ public class DBManager {
                 if (!tables.next()) {
                     // "Users" 테이블이 존재하지 않으면 스키마 생성 구문 실행
                     System.out.println("Database schema not found. Creating schema..."); // 디버깅용 출력
+
                     try (Statement stmt = conn.createStatement()) {
-                        // 여러 SQL 구문을 한 번에 실행 (SQLite에서 지원)
-                        stmt.execute(CREATE_SCHEMA_SQL);
-                        System.out.println("Database schema created successfully."); // 디버깅용 출력
+                        String[] statements = CREATE_SCHEMA_SQL.split(";");
+                        for (String sql : statements) {
+                            sql = sql.trim();
+                            if (!sql.isEmpty()) {
+                                stmt.executeUpdate(sql + ";");
+                            }
+                        }
+                        System.out.println("Database schema created successfully.");
                     } catch (SQLException e) {
                         System.err.println("Error creating database schema: " + e.getMessage());
                         e.printStackTrace();
-                        // 스키마 생성 실패는 치명적인 오류이므로, 여기서 적절한 오류 처리 필요
                     }
+
                 } else {
                     System.out.println("Database schema already exists."); // 디버깅용 출력
                 }
             }
         } catch (SQLException e) {
             System.err.println("Error during database initialization connection: " + e.getMessage());
-            e.printStackTrace();
-            // 초기화 중 연결 오류 발생 시 처리
+            e.printStackTrace(); // 초기화 중 연결 오류 발생 시 처리
         }
     }
 
