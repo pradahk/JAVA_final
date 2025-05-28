@@ -2,47 +2,52 @@ package com.smwujava.medicineapp.ui.panels;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.Arrays;
-
-import com.smwujava.medicineapp.ui.panels.BottomNavPanel;
-
-import com.smwujava.medicineapp.ui.panels.CalendarPanel;
-import com.smwujava.medicineapp.ui.panels.MedicationListPanel;
-import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
-import com.smwujava.medicineapp.ui.panels.LifestylePanel;
-import com.smwujava.medicineapp.ui.panels.DummyPanel;
-
 
 public class MainWindow extends JFrame {
     private CardLayout cardLayout;
     private JPanel contentPanel;
+    private JPanel bottomNav;
 
     public MainWindow() {
         super("Medicine App");
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
-        // 1) 메인 콘텐츠 (CardLayout)
+        // CardLayout 설정
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
-        contentPanel.add(new CalendarPanel(), "CALENDAR");
-        contentPanel.add(new MedicationListPanel(), "LIST");
-        contentPanel.add(
-                new MedicationSettingsPanel(cardLayout, contentPanel),
-                "SETTINGS"
-        );
-        contentPanel.add(new LifestylePanel(), "LIFESTYLE");
-        contentPanel.add(new DummyPanel(), "DUMMY");
+
+        // 1. 로그인 화면 (하단바 없음)
+        LoginPanel loginPanel = new LoginPanel(e -> {
+            cardLayout.show(contentPanel, "CALENDAR");
+            add(bottomNav, BorderLayout.SOUTH);   // 하단바를 이 시점에 추가
+            revalidate();                         // 레이아웃 갱신
+            repaint();
+        });
+        contentPanel.add(loginPanel, "LOGIN");
+
+        // 2. 나머지 화면 구성
+        CalendarPanel calendarPanel = new CalendarPanel(cardLayout, contentPanel);
+        MedicationListPanel medicationListPanel = new MedicationListPanel(cardLayout, contentPanel);
+        MedicationSettingsPanel medicationSettingsPanel = new MedicationSettingsPanel(cardLayout, contentPanel);
+        LifestylePanel lifestylePanel = new LifestylePanel();
+
+        contentPanel.add(calendarPanel, "CALENDAR");
+        contentPanel.add(medicationListPanel, "LIST");
+        contentPanel.add(medicationSettingsPanel, "SETTINGS");
+        contentPanel.add(lifestylePanel, "LIFESTYLE");
+
         add(contentPanel, BorderLayout.CENTER);
 
-        // 2) 바텀 네비게이션
-        add(new BottomNavPanel(this::switchTo), BorderLayout.SOUTH);
+        // 3. 하단 네비게이션 바 생성 (초기에는 추가 X)
+        bottomNav = new BottomNavPanel(this::switchTo);
 
-        pack();
+        setSize(400, 600);
         setLocationRelativeTo(null);
         setVisible(true);
+
+        // 최초에는 로그인 화면으로 시작 (하단바 없음)
+        cardLayout.show(contentPanel, "LOGIN");
     }
 
     private void switchTo(String name) {

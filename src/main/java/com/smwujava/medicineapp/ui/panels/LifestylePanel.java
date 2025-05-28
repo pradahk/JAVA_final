@@ -13,16 +13,14 @@ public class LifestylePanel extends JPanel {
         content.setOpaque(false);
         content.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        JLabel profileImage = new JLabel(new ImageIcon("assets/profile.png")); // 이미지 경로 필요
+        // 이미지 제거됨
         JLabel nameLabel = new JLabel("엄청난 감자");
         JLabel birthLabel = new JLabel("2005. 04. 01");
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         birthLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        profileImage.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        content.add(profileImage);
-        content.add(Box.createVerticalStrut(5));
+        content.add(Box.createVerticalStrut(20)); // 이미지 대신 간격
         content.add(nameLabel);
         content.add(birthLabel);
         content.add(Box.createVerticalStrut(30));
