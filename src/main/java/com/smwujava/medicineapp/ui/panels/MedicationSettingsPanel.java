@@ -19,12 +19,14 @@ public class MedicationSettingsPanel extends JPanel {
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.setOpaque(false);
 
+        // 약 이름 입력
         JTextField nameField = new JTextField("");
         nameField.setMaximumSize(new Dimension(400, 30));
         nameField.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(Box.createVerticalStrut(20));
         container.add(nameField);
 
+        // 복용 주기
         JLabel daysLabel = new JLabel("복용 주기");
         daysLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(Box.createVerticalStrut(20));
@@ -40,6 +42,7 @@ public class MedicationSettingsPanel extends JPanel {
         daysPanel.setOpaque(false);
         container.add(daysPanel);
 
+        // 복용 시간대
         container.add(Box.createVerticalStrut(20));
         JLabel timeLabel = new JLabel("복용 시간대");
         timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -55,6 +58,7 @@ public class MedicationSettingsPanel extends JPanel {
         timePanel.add(directionBox);
         container.add(timePanel);
 
+        // 하루 복용량
         container.add(Box.createVerticalStrut(20));
         JLabel doseLabel = new JLabel("하루 복용량");
         doseLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -79,6 +83,7 @@ public class MedicationSettingsPanel extends JPanel {
             count.setText(String.valueOf(current + 1));
         });
 
+        // 색상 선택
         container.add(Box.createVerticalStrut(20));
         JLabel colorLabel = new JLabel("색상 선택:");
         colorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -103,14 +108,18 @@ public class MedicationSettingsPanel extends JPanel {
         }
         container.add(colorPanel);
 
+        // 저장 버튼
         container.add(Box.createVerticalStrut(30));
         JButton saveButton = new JButton("저장");
         saveButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        saveButton.setPreferredSize(new Dimension(100, 40));
         container.add(saveButton);
 
+        // 저장 버튼 이벤트, 정보 저장X 화면 전환만 해당
         saveButton.addActionListener(e -> {
-            cardLayout.show(mainPanel, "home");
+            cardLayout.show(mainPanel, "CALENDAR"); // "home" → "CALENDAR"
         });
+
 
         add(container);
     }
