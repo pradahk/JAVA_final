@@ -486,4 +486,43 @@ public class DosageRecordDao {
         }
         return records;
     }
+
+
+    /**
+     * 현재 시각 기준으로, 아직 복용하지 않았고 건너뛰지 않은 복용 기록 중
+     * 가장 가까운 예정 알람 시간을 반환합니다.
+     * rescheduled_time이 있으면 그것을 우선 사용하고, 없으면 scheduled_time을 사용합니다.
+     *
+     * @param userId 사용자 ID
+     * @return 가장 가까운 알람 시간 (LocalDateTime), 없으면 null
+     * @throws SQLException DB 오류 발생 시
+     */
+
+    public LocalDateTime findClosestUpcomingAlarmTime(int userId) throws SQLException {
+        String sql = "SELECT * FROM DosageRecords " +
+                "WHERE user_id = ? AND is_skipped = 0 AND actual_taken_time IS NULL " +
+                "AND (COALESCE(rescheduled_time, scheduled_time) > ?) " +
+                "ORDER BY COALESCE(rescheduled_time, scheduled_time) ASC LIMIT 1";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, userId);
+            pstmt.setString(2, LocalDateTime.now().format(DATETIME_FORMATTER));
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    String rescheduledStr = rs.getString("rescheduled_time");
+                    String scheduledStr = rs.getString("scheduled_time");
+                    return (rescheduledStr != null && !rescheduledStr.isEmpty())
+                            ? convertStringToLocalDateTime(rescheduledStr)
+                            : convertStringToLocalDateTime(scheduledStr);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding next alarm: " + e.getMessage());
+            throw e;
+        }
+        return null;
+    }
 }

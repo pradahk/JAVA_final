@@ -1,6 +1,6 @@
 package com.smwujava.medicineapp.admin;
 
-import com.smwujava.medicineapp.model.UserSummary;
+import com.smwujava.medicineapp.controller.UserSummary;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;

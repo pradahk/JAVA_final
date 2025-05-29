@@ -1,4 +1,4 @@
-package com.smwujava.medicineapp.model;
+package com.smwujava.medicineapp.controller;
 
 public class UserSummary {
     private String userId;

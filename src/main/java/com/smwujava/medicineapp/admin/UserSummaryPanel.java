@@ -4,7 +4,7 @@ import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.dao.UserDao;  // 추가
 import com.smwujava.medicineapp.model.User;
-import com.smwujava.medicineapp.model.UserSummary;
+import com.smwujava.medicineapp.controller.UserSummary;
 import com.smwujava.medicineapp.service.UserSummaryService;
 
 import javax.swing.*;

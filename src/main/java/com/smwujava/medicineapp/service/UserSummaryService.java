@@ -3,7 +3,7 @@ package com.smwujava.medicineapp.service;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.model.DosageRecord;
-import com.smwujava.medicineapp.model.UserSummary;
+import com.smwujava.medicineapp.controller.UserSummary;
 
 import java.sql.SQLException;
 import java.time.Duration;

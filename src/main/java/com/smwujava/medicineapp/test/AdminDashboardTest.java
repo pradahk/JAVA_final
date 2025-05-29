@@ -1,4 +1,6 @@
-package com.smwujava.medicineapp.admin;
+package com.smwujava.medicineapp.test;
+
+import com.smwujava.medicineapp.admin.AdminDashboardPanel;
 
 import javax.swing.*;
 
