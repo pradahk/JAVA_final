@@ -17,11 +17,7 @@ public class DBManager {
     private static String ADMIN_USERNAME;
     private static String ADMIN_PASSWORD;
 
-    // 설정 파일을 로드하는 정적 초기화 블록
     static {
-        // config.properties 파일 경로 (resources 폴더에 있어야 함)
-        // IDE에서 실행할 때는 프로젝트 루트의 resources 폴더에,
-        // JAR 파일로 배포할 때는 JAR 파일 내부에 포함되어야 합니다.
         final String CONFIG_FILE = "config.properties";
 
         try (InputStream input = DBManager.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
@@ -46,7 +42,6 @@ public class DBManager {
         }
     }
 
-
     private static final String CREATE_SCHEMA_SQL =
             "PRAGMA foreign_keys = ON;" +
                     "CREATE TABLE IF NOT EXISTS Users (" +
@@ -58,10 +53,14 @@ public class DBManager {
                     ");" +
                     "CREATE TABLE IF NOT EXISTS UserPatterns (" +
                     "   user_id INTEGER PRIMARY KEY," +
-                    "   breakfast TEXT," +
-                    "   lunch TEXT," +
-                    "   dinner TEXT," +
-                    "   sleep TEXT," +
+                    "   breakfast_start TEXT," + // 변경된 컬럼
+                    "   breakfast_end TEXT," +   // 변경된 컬럼
+                    "   lunch_start TEXT," +     // 변경된 컬럼
+                    "   lunch_end TEXT," +       // 변경된 컬럼
+                    "   dinner_start TEXT," +    // 변경된 컬럼
+                    "   dinner_end TEXT," +      // 변경된 컬럼
+                    "   sleep_start TEXT," +     // 변경된 컬럼
+                    "   sleep_end TEXT," +       // 변경된 컬럼
                     "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
                     ");" +
                     "CREATE TABLE IF NOT EXISTS Medicine (" +
@@ -80,23 +79,18 @@ public class DBManager {
                     "   record_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     "   user_id INTEGER NOT NULL," +
                     "   med_id INTEGER NOT NULL," +
-                    "   scheduled_time TEXT NOT NULL," + // SQLite는 DATETIME을 TEXT로 저장
-                    "   actual_taken_time TEXT," +       // 실제 복용 시간 (NULL 허용)
-                    "   rescheduled_time TEXT," +        // <-- 이 부분이 누락되었었습니다.
-                    "   is_skipped INTEGER DEFAULT 0," + // <-- 이 부분이 누락되었었습니다.
+                    "   scheduled_time TEXT NOT NULL," +
+                    "   actual_taken_time TEXT," +
+                    "   rescheduled_time TEXT," +
+                    "   is_skipped INTEGER DEFAULT 0," +
                     "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE," +
                     "   FOREIGN KEY (med_id) REFERENCES Medicine (med_id) ON DELETE CASCADE ON UPDATE CASCADE," +
-                    "   UNIQUE (user_id, med_id, scheduled_time)" + // scheduled_time을 고유 제약 조건에 포함
+                    "   UNIQUE (user_id, med_id, scheduled_time)" +
                     ");";
 
     private DBManager() {
     }
 
-    /**
-     * SQLite 데이터베이스 연결을 설정하고 Connection 객체를 반환합니다.
-     * DB 파일이 없으면 자동으로 생성됩니다.
-     * @return 유효한 Connection 객체
-     */
     public static Connection getConnection() throws SQLException {
         Connection con = null;
         try {
@@ -116,6 +110,7 @@ public class DBManager {
      * 데이터베이스 스키마가 존재하지 않으면(Users 테이블 기준) 스키마를 생성하고,
      * 관리자 계정이 없으면 생성합니다.
      * 애플리케이션 시작 시 한 번 호출하여 DB 파일 및 테이블을 초기화합니다.
+     * 또한, 기존 테이블의 컬럼 변경이 필요한 경우 마이그레이션 로직을 수행합니다.
      */
     public static void initializeDatabase() {
         System.out.println("Initializing database...");
@@ -152,8 +147,6 @@ public class DBManager {
                         }
                     }
                     // DosageRecords 테이블의 새 컬럼들 추가 로직 (Migration)
-                    // initializeDatabase()가 처음 실행될 때 DosageRecords 테이블이 없으면 CREATE_SCHEMA_SQL에 의해 올바르게 생성됩니다.
-                    // 그러나 기존에 테이블이 있었다면 이 마이그레이션 로직이 작동해야 합니다.
                     if (!columnExists(conn, "DosageRecords", "rescheduled_time")) {
                         System.out.println("Adding 'rescheduled_time' column to DosageRecords table...");
                         try (Statement stmt = conn.createStatement()) {
@@ -174,12 +167,67 @@ public class DBManager {
                             e.printStackTrace();
                         }
                     }
+
+                    // UserPatterns 테이블의 새 컬럼들 추가 로직 (Migration)
+                    // 기존 컬럼 (breakfast, lunch, dinner, sleep)이 있다면 삭제하고 새로운 컬럼을 추가하는 것이 일반적이지만,
+                    // 데이터 손실을 방지하기 위해 여기서는 간단히 새로운 컬럼만 추가합니다.
+                    // 실제 운영 환경에서는 데이터 마이그레이션 전략을 신중히 고려해야 합니다.
+                    if (tableExists(conn, "UserPatterns")) {
+                        if (!columnExists(conn, "UserPatterns", "breakfast_start")) {
+                            System.out.println("Adding 'breakfast_start' and 'breakfast_end' columns to UserPatterns table...");
+                            try (Statement stmt = conn.createStatement()) {
+                                // 기존 컬럼들을 먼저 삭제하거나 (데이터 손실 주의)
+                                // ALTER TABLE UserPatterns DROP COLUMN breakfast; (SQLite는 DROP COLUMN 지원하지 않음, 테이블 재생성 필요)
+                                // 대신 새로운 컬럼만 추가하고, 기존 데이터를 새 컬럼으로 옮기는 로직이 필요할 수 있습니다.
+                                // 이 예시에서는 단순히 새 컬럼만 추가합니다.
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_start TEXT;");
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_end TEXT;");
+                                System.out.println("'breakfast_start' and 'breakfast_end' columns added.");
+                            } catch (SQLException e) {
+                                System.err.println("Error adding breakfast columns: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                        if (!columnExists(conn, "UserPatterns", "lunch_start")) {
+                            System.out.println("Adding 'lunch_start' and 'lunch_end' columns to UserPatterns table...");
+                            try (Statement stmt = conn.createStatement()) {
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_start TEXT;");
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_end TEXT;");
+                                System.out.println("'lunch_start' and 'lunch_end' columns added.");
+                            } catch (SQLException e) {
+                                System.err.println("Error adding lunch columns: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                        if (!columnExists(conn, "UserPatterns", "dinner_start")) {
+                            System.out.println("Adding 'dinner_start' and 'dinner_end' columns to UserPatterns table...");
+                            try (Statement stmt = conn.createStatement()) {
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_start TEXT;");
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_end TEXT;");
+                                System.out.println("'dinner_start' and 'dinner_end' columns added.");
+                            } catch (SQLException e) {
+                                System.err.println("Error adding dinner columns: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                        if (!columnExists(conn, "UserPatterns", "sleep_start")) {
+                            System.out.println("Adding 'sleep_start' and 'sleep_end' columns to UserPatterns table...");
+                            try (Statement stmt = conn.createStatement()) {
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_start TEXT;");
+                                stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_end TEXT;");
+                                System.out.println("'sleep_start' and 'sleep_end' columns added.");
+                            } catch (SQLException e) {
+                                System.err.println("Error adding sleep columns: " + e.getMessage());
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
 
                 // 관리자 계정 생성 로직
-                if (tableExists(conn, "Users")) { // Users 테이블이 존재하는지 다시 한번 확인
-                    if (!adminAccountExists(conn)) { // 관리자 계정이 없는 경우
-                        insertAdminAccount(conn); // 관리자 계정 삽입
+                if (tableExists(conn, "Users")) {
+                    if (!adminAccountExists(conn)) {
+                        insertAdminAccount(conn);
                     } else {
                         System.out.println("Admin account already exists.");
                     }
@@ -191,12 +239,6 @@ public class DBManager {
         }
     }
 
-    /**
-     * 특정 테이블이 데이터베이스에 존재하는지 확인합니다.
-     * @param conn 데이터베이스 연결 객체
-     * @param tableName 확인할 테이블 이름
-     * @return 테이블이 존재하면 true, 그렇지 않으면 false
-     */
     private static boolean tableExists(Connection conn, String tableName) throws SQLException {
         DatabaseMetaData meta = conn.getMetaData();
         try (ResultSet rs = meta.getTables(null, null, tableName, new String[] {"TABLE"})) {
@@ -204,13 +246,6 @@ public class DBManager {
         }
     }
 
-    /**
-     * 특정 테이블에 특정 컬럼이 존재하는지 확인합니다.
-     * @param conn 데이터베이스 연결 객체
-     * @param tableName 확인할 테이블 이름
-     * @param columnName 확인할 컬럼 이름
-     * @return 컬럼이 존재하면 true, 그렇지 않으면 false
-     */
     private static boolean columnExists(Connection conn, String tableName, String columnName) throws SQLException {
         DatabaseMetaData meta = conn.getMetaData();
         try (ResultSet rs = meta.getColumns(null, null, tableName, columnName)) {
@@ -218,11 +253,6 @@ public class DBManager {
         }
     }
 
-    /**
-     * 관리자 계정이 Users 테이블에 존재하는지 확인합니다.
-     * @param conn 데이터베이스 연결 객체
-     * @return 관리자 계정이 존재하면 true, 그렇지 않으면 false
-     */
     private static boolean adminAccountExists(Connection conn) throws SQLException {
         String sql = "SELECT COUNT(*) FROM Users WHERE username = ? AND is_admin = 1";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -236,26 +266,18 @@ public class DBManager {
         return false;
     }
 
-    /**
-     * 관리자 계정을 Users 테이블에 삽입합니다.
-     * @param conn 데이터베이스 연결 객체
-     */
     private static void insertAdminAccount(Connection conn) throws SQLException {
         String sql = "INSERT INTO Users (username, password, auto_login, is_admin) VALUES (?, ?, ?, ?)";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, ADMIN_USERNAME);
             pstmt.setString(2, ADMIN_PASSWORD);
-            pstmt.setInt(3, 0); // 관리자 계정은 자동 로그인 비활성화 (0)
-            pstmt.setInt(4, 1); // 관리자 계정으로 설정 (1)
+            pstmt.setInt(3, 0);
+            pstmt.setInt(4, 1);
             pstmt.executeUpdate();
             System.out.println("Admin account created successfully: " + ADMIN_USERNAME);
         }
     }
 
-    /**
-     * 주어진 데이터베이스 연결을 닫습니다.
-     * @param conn 닫을 Connection 객체 (null일 수 있음)
-     */
     public static void closeConnection(Connection conn) {
         if (conn != null) {
             try {
