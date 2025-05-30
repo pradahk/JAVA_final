@@ -1,4 +1,4 @@
-package com.smwujava.medicineapp.ui;
+package com.smwujava.medicineapp.test;
 
 import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
