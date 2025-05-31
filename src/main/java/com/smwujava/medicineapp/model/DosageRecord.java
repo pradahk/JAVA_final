@@ -3,6 +3,9 @@ package com.smwujava.medicineapp.model;
 import java.time.LocalDateTime;
 
 public class DosageRecord {
+
+    // id 필드 추가
+    private int id;
     private int recordId;         // 복용 기록 고유 ID, DB 상에서는 PK
     private int userId;           // 사용자 ID, DB 상에서는 FK
     private int medId;            // 약 ID, DB 상에서는 FK
@@ -39,6 +42,10 @@ public class DosageRecord {
         this.actualTakenTime = actualTakenTime;
         this.rescheduledTime = rescheduledTime;
         this.isSkipped = isSkipped;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     //Getter 메서드

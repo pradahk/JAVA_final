@@ -6,7 +6,16 @@ import com.smwujava.medicineapp.util.AutoLoginUtil;
 import java.sql.SQLException;
 
 public class UserService {
-    private UserService() {
+
+    // (수정) 싱글톤 인스턴스
+    private static final UserService instance = new UserService();
+
+    // private 생성자
+    private UserService() {}
+
+    //인스턴스를 가져오는 메서드
+    public static UserService getInstance() {
+        return instance;
     }
 
     /**
@@ -15,7 +24,7 @@ public class UserService {
      * @param password 비밀번호
      * @return 회원가입 성공 시 true, 실패 시 false
      */
-    public static boolean register(String username, String password) {
+    public boolean register(String username, String password) {
         try {
             // 사용자 이름 중복 확인
             if (UserDao.findUserByUsername(username) != null) { // 수정된 부분
@@ -53,7 +62,7 @@ public class UserService {
      * @param rememberMe 자동 로그인 여부
      * @return 로그인 성공 시 true, 실패 시 false
      */
-    public static boolean login(String username, String password, boolean rememberMe) {
+    public boolean login(String username, String password, boolean rememberMe) {
         try {
             // 사용자 이름으로 사용자 찾기 (수정된 부분)
             User user = UserDao.findUserByUsername(username);
@@ -107,7 +116,7 @@ public class UserService {
      * @param newPassword 새로 설정할 비밀번호
      * @return 비밀번호 수정 성공 시 true, 실패 시 false
      */
-    public static boolean changePassword(String username, String currentPassword, String newPassword) {
+    public boolean changePassword(String username, String currentPassword, String newPassword) {
         try {
             // 현재 비밀번호 일치 확인 (login 메서드의 로직을 재사용)
             // rememberMe는 false로 넘겨서 자동 로그인 상태를 변경하지 않도록 함.
@@ -155,7 +164,7 @@ public class UserService {
      * @param newUsername 새로 설정할 사용자 이름
      * @return 사용자 이름 수정 성공 시 true, 실패 시 false
      */
-    public static boolean changeUsername(String currentUsername, String newUsername) {
+    public boolean changeUsername(String currentUsername, String newUsername) {
         try {
             // 새 사용자 이름 중복 확인
             if (UserDao.findUserByUsername(newUsername) != null) { // 수정된 부분
@@ -187,7 +196,7 @@ public class UserService {
      * 로그아웃 기능을 수행합니다. 자동 로그인 정보를 삭제하고, DB의 자동 로그인 상태를 업데이트합니다.
      * @param userId 현재 로그인된 사용자의 ID (DB 업데이트를 위해 필요)
      */
-    public static void logout(int userId) {
+    public void logout(int userId) {
         AutoLoginUtil.clearAutoLoginUser(); // 파일 시스템 등 저장된 자동 로그인 정보 삭제
         try {
             // DB에서 해당 사용자의 자동 로그인 상태를 false로 업데이트

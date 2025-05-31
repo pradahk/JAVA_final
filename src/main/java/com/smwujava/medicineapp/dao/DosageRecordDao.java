@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map; // 통계를 위해 추가
 import java.util.HashMap; // 통계를 위해 추가
+import java.sql.Timestamp; // 06.01 수정
+
 
 /**
  * 복용 기록(DosageRecords 테이블) 데이터 접근 객체 (DAO)
@@ -45,6 +47,41 @@ public class DosageRecordDao {
         return (dateTimeString != null && !dateTimeString.isEmpty()) ? LocalDateTime.parse(dateTimeString, DATETIME_FORMATTER) : null;
     }
 
+    // 06.01 정모아 수정
+    public List<DosageRecord> findScheduledAlarmsWithin(LocalDateTime start, LocalDateTime end) throws SQLException {
+        List<DosageRecord> alarms = new ArrayList<>();
+
+        String sql = "SELECT * FROM DosageRecords " +
+                "WHERE scheduled_time BETWEEN ? AND ? " +
+                "AND actual_taken_time IS NULL AND is_skipped = 0";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setTimestamp(1, Timestamp.valueOf(start));
+            pstmt.setTimestamp(2, Timestamp.valueOf(end));
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    DosageRecord record = new DosageRecord(
+                            rs.getInt("record_id"),
+                            rs.getInt("user_id"),
+                            rs.getInt("med_id"),
+                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                            convertStringToLocalDateTime(rs.getString("rescheduled_time")),
+                            rs.getBoolean("is_skipped")
+                    );
+                    alarms.add(record);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error while fetching scheduled alarms: " + e.getMessage());
+            throw e;
+        }
+
+        return alarms;
+    }
     /**
      * 새로운 복용 기록을 데이터베이스의 DosageRecords 테이블에 삽입합니다.
      * recordId는 DB에서 자동 생성됩니다.
@@ -485,6 +522,36 @@ public class DosageRecordDao {
         }
         return records;
     }
+
+    //DosageRecordDao.getTodaySchedules() 구현 (06.01 정모아 수정)
+    public List<DosageRecord> getTodaySchedules() {
+        List<DosageRecord> records = new ArrayList<>();
+        String sql = "SELECT * FROM DosageRecords " +
+                "WHERE DATE(scheduled_time) = DATE('now', 'localtime') " +
+                "AND actual_taken_time IS NULL";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                DosageRecord record = new DosageRecord(
+                        rs.getInt("user_id"),
+                        rs.getInt("medicine_id"),
+                        rs.getTimestamp("scheduled_time").toLocalDateTime()
+                );
+                record.setId(rs.getInt("id"));
+                // 필요한 경우 추가 필드도 설정 가능
+                records.add(record);
+            }
+
+        } catch (Exception e) {
+            System.err.println("오늘의 복용 스케줄 조회 중 오류 발생: " + e.getMessage());
+        }
+
+        return records;
+    }
+
 
 
     /**

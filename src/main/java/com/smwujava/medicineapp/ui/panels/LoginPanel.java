@@ -3,9 +3,11 @@ package com.smwujava.medicineapp.ui.panels;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import com.smwujava.medicineapp.service.UserService;
+import com.smwujava.medicineapp.model.User;
 
 public class LoginPanel extends JPanel {
-    public LoginPanel(ActionListener onLogin) {
+    public LoginPanel() {
         setLayout(new GridBagLayout());
         setBackground(Color.WHITE);
 
@@ -62,7 +64,6 @@ public class LoginPanel extends JPanel {
         loginButton.setFocusPainted(false);
         loginButton.setFont(new Font("SansSerif", Font.BOLD, 14));
         loginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        loginButton.addActionListener(onLogin);
         container.add(loginButton);
 
         container.add(Box.createVerticalStrut(15));
@@ -86,6 +87,24 @@ public class LoginPanel extends JPanel {
         joinButton.setFont(new Font("SansSerif", Font.PLAIN, 13));
         joinButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(joinButton);
+
+        // 로그인 버튼 이벤트(수정)
+        loginButton.addActionListener(e -> {
+            String username = usernameField.getText();
+            String password = new String(passwordField.getPassword());
+
+
+            UserService userService = UserService.getInstance();
+            boolean success = userService.login(username, password, true);
+
+
+            if (success) {
+                JOptionPane.showMessageDialog(this, "로그인 성공! " + username + "님 환영합니다.");
+                // 다음 화면 전환 코드 여기에 넣기 (예: 메인화면)
+            } else {
+                JOptionPane.showMessageDialog(this, "로그인 실패: 아이디 또는 비밀번호가 잘못되었습니다.");
+            }
+        });
 
         add(container, gbc);
     }
