@@ -15,9 +15,9 @@ public class BottomNavPanel extends JPanel {
         setLayout(new GridLayout(1, 3));
         setPreferredSize(new Dimension(0, 60));
 
-        add(createNavButton("icons/home.png", () -> navigator.accept("CALENDAR")));
-        add(createNavButton("icons/list.png", () -> navigator.accept("LIST")));
-        add(createNavButton("icons/user.png", () -> navigator.accept("DUMMY")));
+        add(createNavButton("/icons/home.png", () -> navigator.accept("CALENDAR")));
+        add(createNavButton("/icons/list.png", () -> navigator.accept("LIST")));
+        add(createNavButton("/icons/user.png", () -> navigator.accept("DUMMY")));
     }
 
     private JButton createNavButton(String iconPath, Runnable action) {

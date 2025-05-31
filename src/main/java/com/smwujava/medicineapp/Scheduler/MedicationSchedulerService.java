@@ -123,14 +123,14 @@ public class MedicationSchedulerService {
 
         if (medCondition == null) {
             System.err.println("Medication condition is null for medId: " + med.getMedId() + ". Defaulting to breakfast.");
-            refTime = parseTime(pattern.getBreakfast());
+            refTime = parseTime(pattern.getBreakfastStartTime());
         } else if ("식사".equals(medCondition)) {
-            refTime = parseTime(pattern.getBreakfast()); // TODO: 실제 시나리오에 맞게 개선
+            refTime = parseTime(pattern.getBreakfastStartTime()); // TODO: 실제 시나리오에 맞게 개선
         } else if ("잠자기".equals(medCondition)) {
-            refTime = parseTime(pattern.getSleep());
+            refTime = parseTime(pattern.getSleepStartTime());
         } else {
             System.err.println("Unknown medication condition: " + medCondition + ". Defaulting to breakfast.");
-            refTime = parseTime(pattern.getBreakfast());
+            refTime = parseTime(pattern.getBreakfastStartTime());
         }
 
         int offset = med.getMedMinutes();
