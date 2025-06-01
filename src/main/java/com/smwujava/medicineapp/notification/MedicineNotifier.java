@@ -3,6 +3,10 @@ package com.smwujava.medicineapp.notification;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.service.AlarmManager;
 import com.smwujava.medicineapp.service.AlarmResponseHandler;
+import com.smwujava.medicineapp.service.AlarmAdjustmentService;
+import java.util.Optional;
+
+
 
 import javax.swing.*;
 import java.time.LocalDateTime;
@@ -19,11 +23,22 @@ public class MedicineNotifier {
     public void scheduleNotification(long delayMillis, int userId, int medId, LocalDateTime scheduledTime) {
         timer.schedule(new TimerTask() {
             public void run() {
-                showPopup(userId, medId, scheduledTime);
+                // 1. 알람 시각 자동 조정 시도
+                AlarmAdjustmentService adjustmentService = new AlarmAdjustmentService(new DosageRecordDao());
+                Optional<LocalDateTime> adjustedTime = adjustmentService.suggestAdjustedTime(userId, medId);
+                LocalDateTime finalTime = adjustedTime.orElse(scheduledTime);
+
+                if (adjustedTime.isPresent()) {
+                    System.out.println("⏰ 알람 시각 조정됨 → " + adjustedTime.get());
+                } else {
+                    System.out.println("📌 기본 알람 시각 유지 → " + scheduledTime);
+                }
+
+                // 2. 팝업 실행
+                showPopup(userId, medId, finalTime);
             }
         }, delayMillis);
     }
-
     /**
      * 팝업 알림 띄우고 사용자 응답 처리
      */
@@ -50,7 +65,8 @@ public class MedicineNotifier {
             }
             case 1 -> {
                 handler.handleUserResponse("2", userId, medId, scheduledTime);
-                AlarmManager.rescheduleAlarm(medId, LocalDateTime.now().plusMinutes(5));
+                AlarmManager.rescheduleAlarm(userId, medId, LocalDateTime.now().plusMinutes(5)); // ✅
+
             }
             case 2 -> {
                 handler.handleUserResponse("3", userId, medId, scheduledTime);
