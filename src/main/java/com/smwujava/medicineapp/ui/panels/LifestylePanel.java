@@ -13,14 +13,13 @@ public class LifestylePanel extends JPanel {
         content.setOpaque(false);
         content.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        // 이미지 제거됨
         JLabel nameLabel = new JLabel("엄청난 감자");
         JLabel birthLabel = new JLabel("2005. 04. 01");
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         birthLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        content.add(Box.createVerticalStrut(20)); // 이미지 대신 간격
+        content.add(Box.createVerticalStrut(20));
         content.add(nameLabel);
         content.add(birthLabel);
         content.add(Box.createVerticalStrut(30));
@@ -43,6 +42,26 @@ public class LifestylePanel extends JPanel {
         sleepBox.add(new JLabel("23:00 ~~ 07:00"));
         content.add(sleepBox);
 
+        content.add(Box.createVerticalStrut(20));
+
+        JButton addButton = new JButton("+");
+        addButton.setFont(new Font("SansSerif", Font.BOLD, 18));
+        addButton.setBackground(new Color(102, 204, 153));
+        addButton.setForeground(Color.WHITE);
+        addButton.setFocusPainted(false);
+        addButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        addButton.addActionListener(e -> {
+            Container parent = getParent();
+            if (parent instanceof JPanel) {
+                CardLayout cl = (CardLayout) parent.getLayout();
+                UserPatternInputPanel inputPanel = new UserPatternInputPanel();
+                inputPanel.setOnSaveCallback(() -> cl.show(parent, "LIFESTYLE"));
+                parent.add(inputPanel, "INPUT");
+                cl.show(parent, "INPUT");
+            }
+        });
+
+        content.add(addButton);
         add(content, BorderLayout.CENTER);
     }
 

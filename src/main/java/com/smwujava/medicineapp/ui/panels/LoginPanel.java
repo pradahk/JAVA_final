@@ -3,6 +3,7 @@ package com.smwujava.medicineapp.ui.panels;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import com.smwujava.medicineapp.ui.icon.MainCharacter;
 
 public class LoginPanel extends JPanel {
     public LoginPanel(ActionListener onLogin) {
@@ -17,12 +18,6 @@ public class LoginPanel extends JPanel {
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.setBackground(Color.WHITE);
 
-        // 더미 아이콘 (회색 사각형)
-        JPanel dummyIcon = new JPanel();
-        dummyIcon.setPreferredSize(new Dimension(100, 100));
-        dummyIcon.setBackground(new Color(220, 220, 220));
-        dummyIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(dummyIcon);
 
         container.add(Box.createVerticalStrut(20));
 

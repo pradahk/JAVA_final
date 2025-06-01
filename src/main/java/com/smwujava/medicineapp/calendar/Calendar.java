@@ -118,7 +118,7 @@ public class Calendar {
                 medsForDisplay.add(new CalendarPanel.MedicationInfo(med.getMedName(), timeString, Color.decode(med.getColor())));
             }
 
-            medicationListPanel.updateMedicationsWithStatus(medsForDisplay, medicinesForToday, todayDosageRecords, this::onMedicineCardClick);
+            medicationListPanel.updateMedications(medsForDisplay, medicinesForToday, todayDosageRecords, this::onMedicineCardClick);
 
             calendarPanel.setSelectedDay(todayDayOfMonth);
 
