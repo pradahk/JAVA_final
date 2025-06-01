@@ -2,6 +2,7 @@ package com.smwujava.medicineapp.ui.alerts;
 
 import com.smwujava.medicineapp.service.AlarmResponseHandler;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
+import com.smwujava.medicineapp.service.AlarmManager;
 
 import javax.swing.*;
 import java.time.LocalDateTime;
@@ -23,16 +24,24 @@ public class AlarmPopup {
 
         String response = switch (choice) {
             case 0 -> "1"; // 지금
-            case 1 -> "2"; // 나중에
-            case 2 -> "3"; // 스킵
-            default -> "3"; // 창 닫으면 스킵으로 처리
+            case 1 -> {
+                AlarmManager.snoozeAlarm(userId, medId, 5); // 5분 뒤 재알람
+                yield "2";
+            }
+            case 2 -> {
+                AlarmManager.cancelAlarm(medId); // 오늘 알람 취소
+                yield "3";
+            }
+            default -> "3"; // 창 닫으면 스킵 처리
         };
 
-        // static이 아니므로 인스턴스를 통해 호출해야 함
+        // 응답 처리
         DosageRecordDao dao = new DosageRecordDao();
         AlarmResponseHandler handler = new AlarmResponseHandler(dao);
         handler.handleUserResponse(response, userId, medId, scheduledTime);
     }
 }
+
+
 
 

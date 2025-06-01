@@ -42,7 +42,7 @@ public class AlarmResponseHandler {
                 break;
 
             case "2":  // 좀 있다가 먹을게요
-                AlarmManager.rescheduleAlarm(medId, LocalDateTime.now().plusMinutes(5));
+                AlarmManager.rescheduleAlarm(userId, medId, LocalDateTime.now().plusMinutes(5));
                 System.out.println("5분 후에 다시 알림이 울릴 예정입니다.");
                 break;
 
