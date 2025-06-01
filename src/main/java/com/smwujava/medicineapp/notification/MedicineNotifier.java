@@ -65,4 +65,3 @@ public class MedicineNotifier {
         timer.cancel();
     }
 }
-
