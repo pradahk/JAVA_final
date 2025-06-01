@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map; // 통계를 위해 추가
-import java.util.HashMap; // 통계를 위해 추가
-import java.sql.Timestamp; // 06.01 수정
+import java.util.Map;
+import java.util.HashMap;
+import java.sql.Timestamp;
 
 
 /**
