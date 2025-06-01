@@ -24,7 +24,7 @@ public class UserService {
      * @param password 비밀번호
      * @return 회원가입 성공 시 true, 실패 시 false
      */
-    public boolean register(String username, String password) {
+    public boolean registerUser(String username, String password) {
         try {
             // 사용자 이름 중복 확인
             if (UserDao.findUserByUsername(username) != null) { // 수정된 부분

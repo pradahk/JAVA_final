@@ -7,7 +7,11 @@ import com.smwujava.medicineapp.service.UserService;
 import com.smwujava.medicineapp.model.User;
 
 public class LoginPanel extends JPanel {
-    public LoginPanel() {
+    private MainWindow mainWindow;
+
+
+    public LoginPanel(MainWindow mainWindow, ActionListener loginSuccessListener) {
+        this.mainWindow = mainWindow;
         setLayout(new GridBagLayout());
         setBackground(Color.WHITE);
 
@@ -87,6 +91,9 @@ public class LoginPanel extends JPanel {
         joinButton.setFont(new Font("SansSerif", Font.PLAIN, 13));
         joinButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(joinButton);
+        joinButton.addActionListener(e -> {
+            mainWindow.showRegisterPanel(); // 회원가입 화면으로 전환
+        });
 
         // 로그인 버튼 이벤트(수정)
         loginButton.addActionListener(e -> {
@@ -105,6 +112,12 @@ public class LoginPanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "로그인 실패: 아이디 또는 비밀번호가 잘못되었습니다.");
             }
         });
+
+        // 회원가입 버튼 이벤트
+        joinButton.addActionListener(e -> {
+            mainWindow.showRegisterPanel(); // 화면 전환
+        });
+
 
         add(container, gbc);
     }
