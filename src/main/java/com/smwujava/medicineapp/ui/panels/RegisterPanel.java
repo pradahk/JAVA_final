@@ -49,8 +49,8 @@ public class RegisterPanel extends JPanel {
         registerButton.setMaximumSize(new Dimension(250, 40));
         add(registerButton);
         registerButton.addActionListener(e -> {
-            // 입력값 검증 및 회원가입 처리 생략...
-            JOptionPane.showMessageDialog(this, "회원가입이 완료되었습니다.");
+
+            JOptionPane.showMessageDialog(this, "회원가입이 완료되었습니다."); // 입력값 검증 및 회원가입 처리 생략...wMessageDialog(this, "회원가입이 완료되었습니다.");
             mainWindow.showLoginPanel(); // 로그인 화면으로 전환
 
             registerButton.addActionListener(ev -> {

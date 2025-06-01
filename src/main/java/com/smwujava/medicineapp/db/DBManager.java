@@ -53,14 +53,14 @@ public class DBManager {
                     ");" +
                     "CREATE TABLE IF NOT EXISTS UserPatterns (" +
                     "   user_id INTEGER PRIMARY KEY," +
-                    "   breakfast_start TEXT," + // 변경된 컬럼
-                    "   breakfast_end TEXT," +   // 변경된 컬럼
-                    "   lunch_start TEXT," +     // 변경된 컬럼
-                    "   lunch_end TEXT," +       // 변경된 컬럼
-                    "   dinner_start TEXT," +    // 변경된 컬럼
-                    "   dinner_end TEXT," +      // 변경된 컬럼
-                    "   sleep_start TEXT," +     // 변경된 컬럼
-                    "   sleep_end TEXT," +       // 변경된 컬럼
+                    "   breakfast_start TEXT," +
+                    "   breakfast_end TEXT," +
+                    "   lunch_start TEXT," +
+                    "   lunch_end TEXT," +
+                    "   dinner_start TEXT," +
+                    "   dinner_end TEXT," +
+                    "   sleep_start TEXT," +
+                    "   sleep_end TEXT," +
                     "   FOREIGN KEY (user_id) REFERENCES Users (user_id) ON DELETE CASCADE ON UPDATE CASCADE" +
                     ");" +
                     "CREATE TABLE IF NOT EXISTS Medicine (" +
@@ -117,7 +117,6 @@ public class DBManager {
 
         try (Connection conn = getConnection()) {
             if (conn != null) {
-                // Users 테이블 존재 여부 확인
                 if (!tableExists(conn, "Users")) {
                     System.out.println("Database schema not found. Creating schema...");
                     try (Statement stmt = conn.createStatement()) {
@@ -135,7 +134,6 @@ public class DBManager {
                     }
                 } else {
                     System.out.println("Database schema already exists.");
-                    // 기존 Users 테이블에 is_admin 컬럼이 없으면 추가하는 로직 (Migration)
                     if (!columnExists(conn, "Users", "is_admin")) {
                         System.out.println("Adding 'is_admin' column to Users table...");
                         try (Statement stmt = conn.createStatement()) {
@@ -146,7 +144,6 @@ public class DBManager {
                             e.printStackTrace();
                         }
                     }
-                    // DosageRecords 테이블의 새 컬럼들 추가 로직 (Migration)
                     if (!columnExists(conn, "DosageRecords", "rescheduled_time")) {
                         System.out.println("Adding 'rescheduled_time' column to DosageRecords table...");
                         try (Statement stmt = conn.createStatement()) {
