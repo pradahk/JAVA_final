@@ -3,10 +3,9 @@ package com.smwujava.medicineapp.ui.panels;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
-import com.smwujava.medicineapp.ui.icon.MainCharacter;
 
 public class LoginPanel extends JPanel {
-    public LoginPanel(ActionListener onLogin) {
+    public LoginPanel(MainWindow mainWindow, ActionListener onLogin) {
         setLayout(new GridBagLayout());
         setBackground(Color.WHITE);
 
