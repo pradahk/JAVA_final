@@ -7,7 +7,7 @@ import com.smwujava.medicineapp.model.DosageRecord;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.ui.panels.CalendarPanel;
 import com.smwujava.medicineapp.ui.panels.MedicationListPanel;
-import com.smwujava.medicineapp.ui.components.CalendarDayPanel; // CalendarDayPanel은 components 패키지에 있음
+import com.smwujava.medicineapp.ui.components.CalendarDayPanel;
 import java.time.format.DateTimeFormatter;
 
 import javax.swing.*;
@@ -49,17 +49,13 @@ public class Calendar {
         loadAndDisplayCalendarPillColors();
     }
 
-    // 메인 애플리케이션에서 CalendarPanel을 가져갈 수 있도록
     public CalendarPanel getCalendarPanel() {
         return calendarPanel;
     }
-
-    // 메인 애플리케이션에서 MedicationListPanel을 가져갈 수 있도록
     public MedicationListPanel getMedicationListPanel() {
         return medicationListPanel;
     }
 
-    // 테스트를 위한 더미 약물 데이터 삽입 메서드
     private void insertDummyMedicineData() {
         try {
             // 이미 데이터가 있는지 확인하여 중복 삽입 방지
@@ -79,8 +75,6 @@ public class Calendar {
         }
     }
 
-
-    // 오늘 날짜의 약물 목록을 DB에서 로드하여 MedicationListPanel에 표시
     private void loadAndDisplayTodayMedications() {
         LocalDate today = LocalDate.now();
         int todayDayOfMonth = today.getDayOfMonth();
@@ -129,9 +123,6 @@ public class Calendar {
         }
     }
 
-
-    // CalendarPanel의 날짜별 알약 색상을 DB 복용 기록에 따라 업데이트
-    // CalendarPanel의 날짜별 알약 색상을 DB 복용 기록에 따라 업데이트
     private void loadAndDisplayCalendarPillColors() {
         LocalDate startOfMonth = LocalDate.of(LocalDate.now().getYear(), LocalDate.now().getMonth(), 1);
         LocalDate endOfMonth = startOfMonth.plusMonths(1).minusDays(1);
@@ -159,19 +150,6 @@ public class Calendar {
     // 이 메서드는 MedicineCardClickListener 인터페이스의 구현체가 됩니다.
     public void onMedicineCardClick(Medicine medicine, boolean isTaken) {
         LocalDate today = LocalDate.now();
-        // 실제로는 약물의 복용 패턴 (med_days, med_condition, med_timing, med_minutes)을 기반으로
-        // DosageRecord의 scheduled_time을 정확히 계산하여 찾거나 생성해야 합니다.
-        // 현재는 편의상 해당 약물의 오늘 자정 기준 예정 기록을 찾거나, 없으면 새로 생성합니다.
-
-        // 오늘 날짜의 해당 약물에 대한 DosageRecord를 찾기
-        // 실제로는 DosageRecord의 scheduled_time이 약의 복용 패턴과 일치해야 하지만
-        // 여기서는 오늘 날짜에 해당 약물에 대한 가장 최근의 DosageRecord를 찾거나,
-        // 아니면 해당 약물에 대한 스케줄링이 된 가장 가까운 미래의 DosageRecord를 찾아야 합니다.
-        // 현재 DB 스키마는 스케줄링 타임이 유니크 제약이 있으므로,
-        // 미리 스케줄링된 특정 복용 시점 (예: 아침 식전 30분)의 레코드를 찾아야 합니다.
-        // 이를 위해 'ScheduledTime'을 정확히 계산해야 합니다.
-
-        // 예시: 오늘 날짜에 대한 이 약물의 예정된 첫 번째 복용 시간 (간단화)
         LocalDateTime scheduledTimeForToday = calculateScheduledTimeForMedicine(today, medicine);
 
 
@@ -208,7 +186,6 @@ public class Calendar {
         }
     }
 
-    // Medicine 모델의 복용 시간 정보를 문자열로 포맷하는 헬퍼 메서드
     private String formatMedicationTime(String condition, String timing, int minutes) {
         if (condition == null || timing == null) {
             return "시간 정보 없음";
@@ -250,8 +227,6 @@ public class Calendar {
         return timeString.trim();
     }
 
-    // Medicine 객체의 복용 조건/시점/분을 기반으로 예정 시간을 계산하는 헬퍼 메서드
-    // 이 메서드는 실제 약물 스케줄링 로직의 일부가 됩니다.
     private LocalDateTime calculateScheduledTimeForMedicine(LocalDate date, Medicine medicine) {
         LocalTime baseTime;
         // 복용 조건에 따라 기준 시간 설정

@@ -165,18 +165,10 @@ public class DBManager {
                         }
                     }
 
-                    // UserPatterns 테이블의 새 컬럼들 추가 로직 (Migration)
-                    // 기존 컬럼 (breakfast, lunch, dinner, sleep)이 있다면 삭제하고 새로운 컬럼을 추가하는 것이 일반적이지만,
-                    // 데이터 손실을 방지하기 위해 여기서는 간단히 새로운 컬럼만 추가합니다.
-                    // 실제 운영 환경에서는 데이터 마이그레이션 전략을 신중히 고려해야 합니다.
                     if (tableExists(conn, "UserPatterns")) {
                         if (!columnExists(conn, "UserPatterns", "breakfast_start")) {
                             System.out.println("Adding 'breakfast_start' and 'breakfast_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
-                                // 기존 컬럼들을 먼저 삭제하거나 (데이터 손실 주의)
-                                // ALTER TABLE UserPatterns DROP COLUMN breakfast; (SQLite는 DROP COLUMN 지원하지 않음, 테이블 재생성 필요)
-                                // 대신 새로운 컬럼만 추가하고, 기존 데이터를 새 컬럼으로 옮기는 로직이 필요할 수 있습니다.
-                                // 이 예시에서는 단순히 새 컬럼만 추가합니다.
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_end TEXT;");
                                 System.out.println("'breakfast_start' and 'breakfast_end' columns added.");
@@ -221,7 +213,6 @@ public class DBManager {
                     }
                 }
 
-                // 관리자 계정 생성 로직
                 if (tableExists(conn, "Users")) {
                     if (!adminAccountExists(conn)) {
                         insertAdminAccount(conn);

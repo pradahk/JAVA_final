@@ -7,8 +7,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;      // Add this line
-import java.util.ArrayList; // Add this line
+import java.util.List;
+import java.util.ArrayList;
 
 public class UserDao {
     private UserDao() {
@@ -17,10 +17,8 @@ public class UserDao {
     /**
      * 새로운 사용자를 데이터베이스의 Users 테이블에 삽입합니다 (회원가입 시 사용).
      * @param user 삽입할 사용자 정보 (User 객체, username, password, autoLogin, isAdmin 필드 필요)
-     * @return 데이터베이스에서 자동 생성된 사용자의 user_id. 오류 발생 시 -1을 반환합니다.
-     */
+     * @return 데이터베이스에서 자동 생성된 사용자의 user_id. 오류 발생 시 -1을 반환합니다. */
     public static int insertUser(User user) throws SQLException {
-        // <<-- 변경점 2: INSERT 쿼리에 is_admin 컬럼 추가 -->>
         String sql = "INSERT INTO Users (username, password, auto_login, is_admin) VALUES (?, ?, ?, ?)";
         int generatedId = -1;
 
@@ -29,15 +27,15 @@ public class UserDao {
 
             pstmt.setString(1, user.getUsername());
             pstmt.setString(2, user.getPassword());
-            pstmt.setInt(3, user.isAutoLogin() ? 1 : 0); // boolean을 INTEGER로 변환
-            pstmt.setInt(4, user.isAdmin() ? 1 : 0);     // <<-- isAdmin 필드 값 설정
+            pstmt.setInt(3, user.isAutoLogin() ? 1 : 0);
+            pstmt.setInt(4, user.isAdmin() ? 1 : 0);
 
             int affectedRows = pstmt.executeUpdate();
 
             if (affectedRows > 0) {
                 try (ResultSet rs = pstmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        generatedId = rs.getInt(1); // 자동 생성된 user_id 가져오기
+                        generatedId = rs.getInt(1);
                     }
                 }
             }
@@ -51,10 +49,8 @@ public class UserDao {
     /**
      * 특정 사용자 이름으로 사용자를 데이터베이스에서 찾습니다. 로그인 시 사용됩니다.
      * @param username 찾을 사용자 이름
-     * @return 데이터베이스에서 찾은 User 객체. 해당 사용자 이름의 사용자가 없으면 null을 반환합니다.
-     */
+     * @return 데이터베이스에서 찾은 User 객체. 해당 사용자 이름의 사용자가 없으면 null을 반환합니다. */
     public static User findUserByUsername(String username) throws SQLException {
-        // <<-- 변경점 3: SELECT 쿼리에 is_admin 컬럼 추가 -->>
         String sql = "SELECT user_id, username, password, auto_login, is_admin FROM Users WHERE username = ?";
         User user = null;
 
@@ -69,9 +65,9 @@ public class UserDao {
                     String foundUsername = rs.getString("username");
                     String foundPassword = rs.getString("password");
                     boolean autoLogin = rs.getBoolean("auto_login");
-                    boolean isAdmin = rs.getBoolean("is_admin"); // <<-- isAdmin 필드 읽어오기
+                    boolean isAdmin = rs.getBoolean("is_admin");
 
-                    user = new User(userId, foundUsername, foundPassword, autoLogin, isAdmin); // <<-- 생성자 업데이트
+                    user = new User(userId, foundUsername, foundPassword, autoLogin, isAdmin);
                 }
             }
         } catch (SQLException e) {
@@ -84,10 +80,8 @@ public class UserDao {
     /**
      * 특정 ID로 사용자를 데이터베이스에서 찾습니다.
      * @param userId 찾을 사용자 ID
-     * @return 데이터베이스에서 찾은 User 객체. 해당 ID의 사용자가 없으면 null을 반환합니다.
-     */
+     * @return 데이터베이스에서 찾은 User 객체. 해당 ID의 사용자가 없으면 null을 반환합니다. */
     public static User findUserById(int userId) throws SQLException {
-        // <<-- 변경점 4: SELECT 쿼리에 is_admin 컬럼 추가 -->>
         String sql = "SELECT user_id, username, password, auto_login, is_admin FROM Users WHERE user_id = ?";
         User user = null;
 
@@ -102,9 +96,9 @@ public class UserDao {
                     String foundUsername = rs.getString("username");
                     String foundPassword = rs.getString("password");
                     boolean autoLogin = rs.getBoolean("auto_login");
-                    boolean isAdmin = rs.getBoolean("is_admin"); // <<-- isAdmin 필드 읽어오기
+                    boolean isAdmin = rs.getBoolean("is_admin");
 
-                    user = new User(foundUserId, foundUsername, foundPassword, autoLogin, isAdmin); // <<-- 생성자 업데이트
+                    user = new User(foundUserId, foundUsername, foundPassword, autoLogin, isAdmin);
                 }
             }
         } catch (SQLException e) {
@@ -117,13 +111,8 @@ public class UserDao {
     /**
      * 사용자 정보를 업데이트합니다. (현재는 비밀번호와 자동 로그인 여부만 업데이트)
      * @param user 업데이트할 사용자 정보 (User 객체, userId, password, autoLogin 필드 필요)
-     * @return 업데이트 성공 시 true, 실패 시 false
-     */
+     * @return 업데이트 성공 시 true, 실패 시 false */
     public static boolean updateUser(User user) throws SQLException {
-        // <<-- 변경점 5: UPDATE 쿼리에 is_admin 컬럼 추가 (필요하다면) -->>
-        // 현재는 username, password, auto_login만 업데이트하는 것으로 보입니다.
-        // is_admin은 관리자 계정 생성 시에만 1로 설정되고, 일반 사용자는 0으로 유지하는 것이 관리상 편리합니다.
-        // 만약 is_admin도 업데이트 가능하게 하려면 아래 SQL에 is_admin = ?를 추가해야 합니다.
         String sql = "UPDATE Users SET username = ?, password = ?, auto_login = ? WHERE user_id = ?";
 
         try (Connection conn = DBManager.getConnection();
@@ -145,8 +134,7 @@ public class UserDao {
     /**
      * 특정 사용자 ID에 해당하는 사용자를 데이터베이스에서 삭제합니다.
      * @param userId 삭제할 사용자 ID
-     * @return 삭제 성공 시 true, 실패 시 false
-     */
+     * @return 삭제 성공 시 true, 실패 시 false */
     public static boolean deleteUser(int userId) throws SQLException {
         String sql = "DELETE FROM Users WHERE user_id = ?";
 
@@ -167,8 +155,7 @@ public class UserDao {
      * 특정 사용자 ID의 자동 로그인 설정을 업데이트합니다.
      * @param userId 자동 로그인 설정을 변경할 사용자 ID
      * @param autoLogin true면 자동 로그인 활성화, false면 비활성화
-     * @return 업데이트 성공 시 true, 실패 시 false
-     */
+     * @return 업데이트 성공 시 true, 실패 시 false */
     public static boolean updateAutoLoginStatus(int userId, boolean autoLogin) throws SQLException {
         String sql = "UPDATE Users SET auto_login = ? WHERE user_id = ?";
 
@@ -185,10 +172,8 @@ public class UserDao {
 
     /**
      * 자동 로그인 설정이 되어 있는 사용자를 찾습니다. (가장 최근에 자동 로그인한 사용자)
-     * @return 자동 로그인 설정된 사용자 User 객체, 없으면 null
-     */
+     * @return 자동 로그인 설정된 사용자 User 객체, 없으면 null */
     public static User findAutoLoginUser() throws SQLException {
-        // <<-- 변경점 6: SELECT 쿼리에 is_admin 컬럼 추가 -->>
         String sql = "SELECT user_id, username, password, auto_login, is_admin FROM Users WHERE auto_login = 1 LIMIT 1";
         User user = null;
 
@@ -201,8 +186,8 @@ public class UserDao {
                     String foundUsername = rs.getString("username");
                     String foundPassword = rs.getString("password");
                     boolean autoLogin = rs.getBoolean("auto_login");
-                    boolean isAdmin = rs.getBoolean("is_admin"); // <<-- isAdmin 필드 읽어오기
-                    user = new User(userId, foundUsername, foundPassword, autoLogin, isAdmin); // <<-- 생성자 업데이트
+                    boolean isAdmin = rs.getBoolean("is_admin");
+                    user = new User(userId, foundUsername, foundPassword, autoLogin, isAdmin);
                 }
             }
         } catch (SQLException e) {
@@ -212,14 +197,11 @@ public class UserDao {
         return user;
     }
 
-    //변경점 7: 모든 일반 사용자 계정을 가져오는 메서드 추가 (관리자 페이지용)
     /**
      * 모든 일반 사용자 계정 정보를 가져옵니다. 관리자 페이지에서 사용자 목록을 보여줄 때 사용합니다.
-     * @return 일반 사용자 User 객체 리스트
-     */
+     * @return 일반 사용자 User 객체 리스트 */
     public static List<User> getAllNormalUsers() throws SQLException {
         List<User> users = new ArrayList<>();
-        // is_admin이 0인 사용자들만 조회
         String sql = "SELECT user_id, username, password, auto_login, is_admin FROM Users WHERE is_admin = 0 ORDER BY user_id ASC";
 
         try (Connection conn = DBManager.getConnection();
@@ -231,7 +213,7 @@ public class UserDao {
                 String username = rs.getString("username");
                 String password = rs.getString("password");
                 boolean autoLogin = rs.getBoolean("auto_login");
-                boolean isAdmin = rs.getBoolean("is_admin"); // is_admin이 0일 것이므로 항상 false
+                boolean isAdmin = rs.getBoolean("is_admin");
 
                 users.add(new User(userId, username, password, autoLogin, isAdmin));
             }
@@ -242,12 +224,9 @@ public class UserDao {
         return users;
     }
 
-    // <<-- 변경점 8: 전체 일반 사용자 수를 가져오는 메서드 추가 -->>
     /**
      * 시스템에 등록된 모든 일반 사용자(관리자 제외)의 수를 가져옵니다.
-     * @return 일반 사용자의 총 수
-     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
-     */
+     * @return 일반 사용자의 총 수 */
     public static int getTotalNormalUserCount() throws SQLException {
         String sql = "SELECT COUNT(*) FROM Users WHERE is_admin = 0";
         int count = 0;
