@@ -5,6 +5,14 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 
 public class LoginPanel extends JPanel {
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private JButton loginButton;
+
+    public void addLoginActionListener(ActionListener listener) {
+        loginButton.addActionListener(listener);  // loginButton은 멤버 변수여야 함
+    }
+
     public LoginPanel(MainWindow mainWindow, ActionListener onLogin) {
         setLayout(new GridBagLayout());
         setBackground(Color.WHITE);
@@ -30,7 +38,7 @@ public class LoginPanel extends JPanel {
         container.add(Box.createVerticalStrut(30));
 
         // 사용자 이름
-        JTextField usernameField = new JTextField("사용자 이름");
+        usernameField = new JTextField("사용자 이름");
         usernameField.setMaximumSize(new Dimension(250, 40));
         usernameField.setAlignmentX(Component.CENTER_ALIGNMENT);
         usernameField.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
@@ -39,7 +47,7 @@ public class LoginPanel extends JPanel {
         container.add(Box.createVerticalStrut(15));
 
         // 비밀번호
-        JPasswordField passwordField = new JPasswordField("비밀번호");
+        passwordField = new JPasswordField("비밀번호");
         passwordField.setMaximumSize(new Dimension(250, 40));
         passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
         passwordField.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
@@ -81,6 +89,13 @@ public class LoginPanel extends JPanel {
         joinButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         container.add(joinButton);
 
-        add(container, gbc);
+        add(container, gbc); }
+
+        public String getUsername() {
+            return usernameField.getText();
+        }
+
+        public String getPassword() {
+            return new String(passwordField.getPassword());
     }
 }

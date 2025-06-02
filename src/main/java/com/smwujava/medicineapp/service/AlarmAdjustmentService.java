@@ -2,6 +2,7 @@ package com.smwujava.medicineapp.service;
 
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.model.DosageRecord;
+import com.smwujava.medicineapp.dao.UserPatternDao;
 
 import java.sql.SQLException;
 import java.time.Duration;
@@ -10,6 +11,23 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 public class AlarmAdjustmentService {
+
+    private static UserPatternDao userPatternDao = new UserPatternDao();
+
+    public static LocalDateTime adjustAlarmBasedOnPattern(int userId, int medId, LocalDateTime scheduledTime) {
+        int lateCount = userPatternDao.getLateCountLastWeek(userId);
+        int averageDelay = userPatternDao.getAverageDelayMinutesByUser(userId);
+
+        if (lateCount >= 4) {
+            // 평균 지연 시간만큼 뒤로 미룸
+            LocalDateTime adjustedTime = scheduledTime.plusMinutes(averageDelay);
+            System.out.println("🔔 알람 조정: " + scheduledTime + " → " + adjustedTime + " (" + averageDelay + "분 지연)");
+            return adjustedTime;
+        } else {
+            return scheduledTime;
+        }
+    }
+
 
     private DosageRecordDao dosageRecordDao; // DosageRecordDao 인스턴스 필드 추가
 

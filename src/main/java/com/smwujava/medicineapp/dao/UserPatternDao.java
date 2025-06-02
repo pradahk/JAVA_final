@@ -9,6 +9,18 @@ import java.sql.SQLException;
 
 public class UserPatternDao {
 
+    // 최근 일주일간 복용 지연 횟수 조회 (예시 구현)
+    public int getLateCountLastWeek(int userId) {
+        // 실제 구현에서는 DB에서 SELECT COUNT(*) 쿼리를 실행하세요
+        return 5;  // 테스트용 더미 값
+    }
+
+    // 사용자의 평균 지연 복용 시간 조회 (예시 구현)
+    public int getAverageDelayMinutesByUser(int userId) {
+        // 실제 구현에서는 DB에서 평균 지연 시간 SELECT 쿼리를 실행하세요
+        return 20;  // 테스트용 더미 값
+    }
+
     // private UserPatternDao() {} // 필요하다면 이 생성자 제거 또는 public으로 변경
 
     /**
