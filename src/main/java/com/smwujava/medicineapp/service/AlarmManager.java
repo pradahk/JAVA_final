@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 import java.util.Timer;
 import java.util.TimerTask;
 import com.smwujava.medicineapp.ui.alerts.AlarmPopup;
+import com.smwujava.medicineapp.dao.UserPatternDao;
+
 
 public class AlarmManager {
 
@@ -59,6 +61,16 @@ public class AlarmManager {
     public static void scheduleAlarm(int userId, int medId, LocalDateTime time) {
         cancelAlarm(medId);  // 중복 방지
 
+        // 🔽 사용자 복약 패턴 기반 알람 시간 자동 조정 추가
+        UserPatternDao patternDao = new UserPatternDao();
+        int delayCount = patternDao.getLateCountLastWeek(userId);
+        int averageDelay = patternDao.getAverageDelayMinutesByUser(userId);
+
+        if (delayCount >= 4) {
+            time = time.plusMinutes(averageDelay);  // 알람 시간 자동 보정
+            System.out.println(" 사용자 패턴 기반으로 알람 시간이 조정됨: " + time);
+        }
+
         long delayMillis = java.sql.Timestamp.valueOf(time).getTime() - System.currentTimeMillis();
 
         if (delayMillis <= 0) {
@@ -66,11 +78,13 @@ public class AlarmManager {
             return;
         }
 
+        final LocalDateTime scheduledTime = time;
+
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
                 System.out.println("[알림] User " + userId + "님, 약(" + medId + ")을 복용할 시간입니다!");
-                triggerAlarm(userId, medId, time);
+                triggerAlarm(userId, medId, scheduledTime);
             }
         };
 
