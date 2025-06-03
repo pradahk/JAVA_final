@@ -166,6 +166,27 @@ public class MedicineDao {
         }
     }
 
+    public String findMedicineNameById(int medId) {
+        String medName = "";
+        String sql = "SELECT med_name FROM Medicine WHERE med_id = ?";
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, medId);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                medName = rs.getString("med_name");
+            }
+        } catch (SQLException e) {
+            System.err.println("💥 약 이름 조회 실패: " + e.getMessage());
+        }
+
+        return medName;
+    }
+
+
     /**
      * 특정 사용자가 등록한 약의 총 개수를 가져옵니다.
      * @param userId 약 개수를 조회할 사용자의 ID
