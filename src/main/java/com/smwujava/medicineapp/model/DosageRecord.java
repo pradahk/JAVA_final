@@ -35,6 +35,7 @@ public class DosageRecord {
         this.actualTakenTime = actualTakenTime;
         this.rescheduledTime = rescheduledTime;
         this.isSkipped = isSkipped;
+
     }
 
     public void setId(int id) {

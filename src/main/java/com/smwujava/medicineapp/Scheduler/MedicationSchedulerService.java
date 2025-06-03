@@ -6,6 +6,7 @@ import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.model.DosageRecord;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.model.UserPattern;
+import com.smwujava.medicineapp.service.AlarmManager;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -15,6 +16,11 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MedicationSchedulerService {
+
+    public void scheduleDailyAlarms(int userId, DosageRecordDao dosageRecordDao, UserPatternDao userPatternDao) {
+        // 여기에 알람 스케줄링 관련 로직을 작성
+        System.out.println("[MedicationSchedulerService] 스케줄 실행됨: userId = " + userId);
+    }
 
     private DosageRecordDao dosageRecordDao;
     private MedicineDao medicineDao;
@@ -73,6 +79,24 @@ public class MedicationSchedulerService {
 
                 try {
                     dosageRecordDao.insertDosageRecord(record);
+
+                    int delayCount = userPatternDao.getLateCountLastWeek(userId);
+                    int avgDelay = userPatternDao.getAverageDelayMinutesByUser(userId);
+                    LocalDateTime adjustedTime = scheduledDateTime;
+
+                    if (delayCount >= 4) {
+                        adjustedTime = adjustedTime.plusMinutes(avgDelay);
+                        System.out.println("⏰ 알람 시간 조정됨 → medId: " + med.getMedId()
+                                + ", 기본 시각: " + scheduledDateTime
+                                + ", 평균 지연: " + avgDelay + "분 → 조정된 시각: " + adjustedTime);
+                    } else {
+                        System.out.println("✅ 기본 시간으로 알람 예약 → medId: " + med.getMedId()
+                                + ", 예정 시각: " + scheduledDateTime);
+                    }
+
+                    AlarmManager.scheduleAlarm(userId, med.getMedId(), adjustedTime);
+
+
                 } catch (SQLException e) {
                     // SQLite의 UNIQUE 제약 조건 메시지 확인
                     if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed: DosageRecords.user_id, DosageRecords.med_id, record_date")) {

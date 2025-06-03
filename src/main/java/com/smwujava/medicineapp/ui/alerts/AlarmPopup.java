@@ -21,12 +21,15 @@ public class AlarmPopup {
     }
 
     // 2. 실제 복용 알람 창
-    public static void show(int userId, int medId, LocalDateTime scheduledTime) {
+    public static void show(int userId, int medId, LocalDateTime scheduledTime, String medName) {
         Object[] options = {"지금 먹을게요", "좀 있다가 먹을게요", "오늘은 스킵할게요"};
+
+        String message = medName + " 약 복용 시간입니다!\n어떻게 하시겠어요?";
+
 
         int choice = JOptionPane.showOptionDialog(
                 null,
-                "💊 약 복용 시간입니다!\n어떻게 하시겠어요?",
+                message,
                 "복용 알림",
                 JOptionPane.DEFAULT_OPTION,
                 JOptionPane.INFORMATION_MESSAGE,

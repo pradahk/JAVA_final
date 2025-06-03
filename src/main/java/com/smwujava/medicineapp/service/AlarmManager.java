@@ -7,6 +7,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import com.smwujava.medicineapp.ui.alerts.AlarmPopup;
 import com.smwujava.medicineapp.dao.UserPatternDao;
+import com.smwujava.medicineapp.dao.MedicineDao;
 
 
 public class AlarmManager {
@@ -15,7 +16,9 @@ public class AlarmManager {
     private static final Map<Integer, TimerTask> scheduledTasks = new HashMap<>();
 
     public static void triggerAlarm(int userId, int medId, LocalDateTime scheduledTime) {
-        AlarmPopup.show(userId, medId, scheduledTime);
+        MedicineDao medicineDao = new MedicineDao();
+        String medName = medicineDao.findMedicineNameById(medId);  // 약 이름 조회
+        AlarmPopup.show(userId, medId, scheduledTime, medName);  // 약 이름 포함해서 팝업 실행
     }
 
     public static void snoozeAlarm(int userId, int medId, int minutes) {
@@ -90,6 +93,6 @@ public class AlarmManager {
 
         timer.schedule(task, delayMillis);
         scheduledTasks.put(medId, task);
-        System.out.println("알람 예약 완료 → userId=" + userId + ", medId=" + medId + ", 시간=" + time);
+        System.out.println("[AlarmManager] 알람 예약 완료 → userId=" + userId + ", medId=" + medId + ", 시간=" + time);
     }
 }
