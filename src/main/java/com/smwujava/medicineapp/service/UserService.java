@@ -3,7 +3,10 @@ package com.smwujava.medicineapp.service;
 import com.smwujava.medicineapp.dao.UserDao;
 import com.smwujava.medicineapp.model.User;
 import com.smwujava.medicineapp.util.AutoLoginUtil;
+import com.smwujava.medicineapp.model.UserRegistrationResult;
 import java.sql.SQLException;
+import java.util.regex.Pattern;
+
 
 public class UserService {
 
@@ -12,6 +15,29 @@ public class UserService {
 
     // private 생성자
     private UserService() {}
+
+    public UserRegistrationResult validateRegistration(String username, String password) {
+        try {
+            if (UserDao.findUserByUsername(username) != null) {
+                return UserRegistrationResult.DUPLICATE_USERNAME;
+            }
+
+            if (password.length() < 7) {
+                return UserRegistrationResult.PASSWORD_TOO_SHORT;
+            }
+
+            // 정규식을 이용한 특수문자 포함 여부 검사
+            if (!Pattern.compile("[!@#$%^&*(),.?\":{}|<>]").matcher(password).find()) {
+                return UserRegistrationResult.PASSWORD_NO_SPECIAL_CHAR;
+            }
+
+            return UserRegistrationResult.SUCCESS;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     //인스턴스를 가져오는 메서드
     public static UserService getInstance() {
@@ -208,3 +234,4 @@ public class UserService {
         }
     }
 }
+

@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -19,11 +18,10 @@ public class DBManager {
 
     static {
         final String CONFIG_FILE = "config.properties";
-
         try (InputStream input = DBManager.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
             Properties prop = new Properties();
             if (input == null) {
-                System.err.println("Sorry, unable to find " + CONFIG_FILE + ". Using default database settings.");
+                System.err.println("Unable to find " + CONFIG_FILE + ". Using default database settings: pharm_reminder.db");
                 DB_URL = "jdbc:sqlite:./pharm_reminder.db";
                 ADMIN_USERNAME = "admin";
                 ADMIN_PASSWORD = "admin_password";
@@ -35,7 +33,6 @@ public class DBManager {
             }
         } catch (IOException ex) {
             System.err.println("Error loading configuration: " + ex.getMessage() + ". Using default database settings.");
-            ex.printStackTrace();
             DB_URL = "jdbc:sqlite:./pharm_reminder.db";
             ADMIN_USERNAME = "admin";
             ADMIN_PASSWORD = "admin_password";
@@ -88,37 +85,20 @@ public class DBManager {
                     "   UNIQUE (user_id, med_id, scheduled_time)" +
                     ");";
 
-    private DBManager() {
-    }
+    private DBManager() {}
 
     public static Connection getConnection() throws SQLException {
-        Connection con = null;
-        try {
-            con = DriverManager.getConnection(DB_URL);
-            try (Statement stmt = con.createStatement()) {
-                stmt.execute("PRAGMA foreign_keys = ON;");
-            }
-        } catch (SQLException e) {
-            System.err.println("Database Connection Error: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+        Connection con = DriverManager.getConnection(DB_URL);
+        try (Statement stmt = con.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON;");
         }
         return con;
     }
 
-    /**
-     * 데이터베이스 스키마가 존재하지 않으면(Users 테이블 기준) 스키마를 생성하고,
-     * 관리자 계정이 없으면 생성합니다.
-     * 애플리케이션 시작 시 한 번 호출하여 DB 파일 및 테이블을 초기화합니다.
-     * 또한, 기존 테이블의 컬럼 변경이 필요한 경우 마이그레이션 로직을 수행합니다.
-     */
     public static void initializeDatabase() {
-        System.out.println("Initializing database...");
-
         try (Connection conn = getConnection()) {
             if (conn != null) {
                 if (!tableExists(conn, "Users")) {
-                    System.out.println("Database schema not found. Creating schema...");
                     try (Statement stmt = conn.createStatement()) {
                         String[] statements = CREATE_SCHEMA_SQL.split(";");
                         for (String sql : statements) {
@@ -127,88 +107,49 @@ public class DBManager {
                                 stmt.executeUpdate(sql + ";");
                             }
                         }
-                        System.out.println("Database schema created successfully.");
                     } catch (SQLException e) {
                         System.err.println("Error creating database schema: " + e.getMessage());
-                        e.printStackTrace();
                     }
                 } else {
-                    System.out.println("Database schema already exists.");
                     if (!columnExists(conn, "Users", "is_admin")) {
-                        System.out.println("Adding 'is_admin' column to Users table...");
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate("ALTER TABLE Users ADD COLUMN is_admin INTEGER DEFAULT 0;");
-                            System.out.println("'is_admin' column added to Users table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'is_admin' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        } catch (SQLException e) { System.err.println("Error adding 'is_admin' column: " + e.getMessage());}
                     }
                     if (!columnExists(conn, "DosageRecords", "rescheduled_time")) {
-                        System.out.println("Adding 'rescheduled_time' column to DosageRecords table...");
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN rescheduled_time TEXT;");
-                            System.out.println("'rescheduled_time' column added to DosageRecords table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'rescheduled_time' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        } catch (SQLException e) { System.err.println("Error adding 'rescheduled_time' column: " + e.getMessage());}
                     }
                     if (!columnExists(conn, "DosageRecords", "is_skipped")) {
-                        System.out.println("Adding 'is_skipped' column to DosageRecords table...");
                         try (Statement stmt = conn.createStatement()) {
                             stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN is_skipped INTEGER DEFAULT 0;");
-                            System.out.println("'is_skipped' column added to DosageRecords table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'is_skipped' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        } catch (SQLException e) { System.err.println("Error adding 'is_skipped' column: " + e.getMessage());}
                     }
-
                     if (tableExists(conn, "UserPatterns")) {
                         if (!columnExists(conn, "UserPatterns", "breakfast_start")) {
-                            System.out.println("Adding 'breakfast_start' and 'breakfast_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_end TEXT;");
-                                System.out.println("'breakfast_start' and 'breakfast_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding breakfast columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding breakfast columns: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "lunch_start")) {
-                            System.out.println("Adding 'lunch_start' and 'lunch_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_end TEXT;");
-                                System.out.println("'lunch_start' and 'lunch_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding lunch columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding lunch columns: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "dinner_start")) {
-                            System.out.println("Adding 'dinner_start' and 'dinner_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_end TEXT;");
-                                System.out.println("'dinner_start' and 'dinner_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding dinner columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding dinner columns: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "sleep_start")) {
-                            System.out.println("Adding 'sleep_start' and 'sleep_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_end TEXT;");
-                                System.out.println("'sleep_start' and 'sleep_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding sleep columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding sleep columns: " + e.getMessage());}
                         }
                     }
                 }
@@ -216,14 +157,15 @@ public class DBManager {
                 if (tableExists(conn, "Users")) {
                     if (!adminAccountExists(conn)) {
                         insertAdminAccount(conn);
-                    } else {
-                        System.out.println("Admin account already exists.");
                     }
+                }
+
+                if (tableExists(conn, "Medicine")) {
+                    insertSampleMedicineDataIfNeeded(conn, 1);
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error during database initialization connection or admin account setup: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error during database initialization: " + e.getMessage());
         }
     }
 
@@ -262,7 +204,30 @@ public class DBManager {
             pstmt.setInt(3, 0);
             pstmt.setInt(4, 1);
             pstmt.executeUpdate();
-            System.out.println("Admin account created successfully: " + ADMIN_USERNAME);
+        }
+    }
+
+    private static void insertSampleMedicineDataIfNeeded(Connection conn, int userId) throws SQLException {
+        String checkSql = "SELECT COUNT(*) AS count FROM Medicine WHERE user_id = ?";
+        boolean dataExists = false;
+        try (PreparedStatement pstmtCheck = conn.prepareStatement(checkSql)) {
+            pstmtCheck.setInt(1, userId);
+            try (ResultSet rs = pstmtCheck.executeQuery()) {
+                if (rs.next() && rs.getInt("count") > 0) {
+                    dataExists = true;
+                }
+            }
+        }
+
+        if (!dataExists) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '테스트약A (월수금)', 1, '월,수,금', '식후', '정각', 0, '#FF0000');");
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '테스트약B (매일)', 1, '월,화,수,목,금,토,일', '식전', '30분', 30, '#00FF00');");
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '오메프라졸 (매일 아침)', 1, '월,화,수,목,금,토,일', '아침 식사', '전', 30, '#B5A9FF');");
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '판피린Q (필요시)', 1, '월,화,수,목,금,토,일', '필요시', '정각', 0, '#E8FD94');");
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '비타민C (오전)', 1, '월,화,수,목,금,토,일', '오전', '정각', 0, '#FFA500');");
+                stmt.execute("INSERT INTO Medicine (user_id, med_name, med_daily_amount, med_days, med_condition, med_timing, med_minutes, color) VALUES ("+userId+", '알레르기약 (저녁)', 1, '월,화,수,목,금,토,일', '저녁 식사', '후', 0, '#00FFFF');");
+            }
         }
     }
 
@@ -272,7 +237,6 @@ public class DBManager {
                 conn.close();
             } catch (SQLException e) {
                 System.err.println("Error closing database connection: " + e.getMessage());
-                e.printStackTrace();
             }
         }
     }

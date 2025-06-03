@@ -12,6 +12,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.sql.SQLException;
+import javax.swing.JFrame;
+
+
 
 
 public class AlarmScheduler {
@@ -19,9 +22,14 @@ public class AlarmScheduler {
     private final MedicationSchedulerService medicationSchedulerService;
     private final DosageRecordDao dosageRecordDao;
     private final UserPatternDao userPatternDao;
-    private final int userId;
+    private final int userId; // 사용자 ID를 실제로 넣어줘야 함
+    private final JFrame parentFrame;
 
-    public AlarmScheduler(int userId, DosageRecordDao dosageRecordDao, UserPatternDao userPatternDao,MedicineDao medicineDao) {
+    public AlarmScheduler(JFrame parentFrame, int userId,
+                          DosageRecordDao dosageRecordDao,
+                          UserPatternDao userPatternDao,
+                          MedicineDao medicineDao) {
+        this.parentFrame = parentFrame;
         this.userId = userId;
         this.dosageRecordDao = dosageRecordDao;
         this.userPatternDao = userPatternDao;
@@ -41,7 +49,7 @@ public class AlarmScheduler {
                     if (delayCount >= 4) {
                         adjustedTime = adjustedTime.plusMinutes(avgDelay);
                     }
-                    AlarmManager.scheduleAlarm(userId, record.getMedId(), adjustedTime);
+                    AlarmManager.scheduleAlarm(parentFrame, userId, record.getMedId(), adjustedTime);
                 }
             } catch (Exception e) {
                 System.err.println("복용 알람 예약 중 오류 발생: " + e.getMessage());

@@ -162,6 +162,47 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         }
     }
 
+    // ✅ [신규 추가] 개별 알람 시간 보정 메서드
+    public LocalDateTime getAdjustedTime(int userId, int medId, LocalDateTime scheduledTime) {
+        DosageRecordDao dao = new DosageRecordDao();
+
+        try {
+            // 최근 7일간 복용 기록 조회
+            LocalDate endDate = LocalDate.now();
+            LocalDate startDate = endDate.minusDays(7);
+            List<DosageRecord> records = dao.findRecordsByUserIdAndDateRange(userId, startDate.toString(), endDate.toString());
+
+            long totalOffset = 0;
+            int count = 0;
+
+            for (DosageRecord record : records) {
+                if (record.getMedId() == medId &&
+                        record.getScheduledTime() != null &&
+                        record.getActualTakenTime() != null &&
+                        !record.isSkipped()) {
+
+                    long offset = Duration.between(record.getScheduledTime(), record.getActualTakenTime()).toMinutes();
+                    if (Math.abs(offset) <= 15) {  // 허용 편차 이내
+                        totalOffset += offset;
+                        count++;
+                    }
+                }
+            }
+
+            // 평균 지연시간이 존재하고 4회 이상이면 보정
+            if (count >= 4) {
+                long averageOffset = totalOffset / count;
+                return scheduledTime.plusMinutes(averageOffset);
+            }
+
+        } catch (SQLException e) {
+            System.err.println("알람 시간 보정 실패: " + e.getMessage());
+        }
+
+        // 보정하지 않고 원래 시간 그대로 반환
+        return scheduledTime;
+    }
+
     /**
      * 계산된 보정 시간을 미래의 복용 기록에 실제로 적용하고 데이터베이스를 업데이트합니다.
      * @param futureRecords 보정 시간을 적용할 미래 복용 기록 리스트

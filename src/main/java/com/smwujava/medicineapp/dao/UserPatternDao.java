@@ -53,14 +53,6 @@ public class UserPatternDao {
         return 0; // 오류 시 0 반환
     }
 
-
-    /**
-     * 사용자의 생활 패턴 정보를 데이터베이스에 삽입하거나 이미 해당 user_id의 패턴이 존재하면 업데이트합니다.
-     * UserPatterns 테이블은 user_id를 기본 키로 가지며 1:1 관계이므로, SQLite의 INSERT OR REPLACE 구문으로 간편하게 처리합니다.
-     *
-     * @param pattern 삽입 또는 업데이트할 생활 패턴 정보 (UserPattern 객체, 반드시 userId 필드 포함)
-     * @return 데이터베이스 작업 성공 시 true, 실패 시 false
-     */
     public boolean insertOrUpdatePattern(UserPattern pattern) {
         // SQL 쿼리 변경: 각 패턴 필드가 _start와 _end로 분리됨
         String sql = "INSERT OR REPLACE INTO UserPatterns (user_id, " +
@@ -91,13 +83,6 @@ public class UserPatternDao {
         }
     }
 
-    /**
-     * 특정 사용자 ID의 생활 패턴 정보를 데이터베이스에서 조회합니다.
-     *
-     * @param userId 조회할 사용자의 ID
-     * @return 해당 user_id의 UserPattern 객체 (없으면 null 반환)
-     * @throws SQLException 데이터베이스 접근 오류 발생 시
-     */
     public UserPattern findPatternByUserId(int userId) throws SQLException {
         // SQL 쿼리 변경: 각 패턴 필드가 _start와 _end로 분리됨
         String sql = "SELECT user_id, breakfast_start, breakfast_end, lunch_start, lunch_end, " +
@@ -140,12 +125,6 @@ public class UserPatternDao {
         return pattern;
     }
 
-    /**
-     * 특정 사용자 ID의 생활 패턴 정보를 데이터베이스에서 삭제합니다.
-     *
-     * @param userId 삭제할 사용자의 ID
-     * @return 삭제 성공 시 true, 실패 시 false
-     */
     public boolean deletePatternByUserId(int userId) throws SQLException {
         String sql = "DELETE FROM UserPatterns WHERE user_id = ?";
         try (Connection conn = DBManager.getConnection();

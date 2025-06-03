@@ -7,6 +7,7 @@ import com.smwujava.medicineapp.model.DosageRecord;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.model.UserPattern;
 import com.smwujava.medicineapp.service.AlarmManager;
+import com.smwujava.medicineapp.service.SuggestAdjustedTime;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -14,8 +15,17 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
+import java.time.format.DateTimeFormatter;
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
+
 
 public class MedicationSchedulerService {
+
+    private final DosageRecordDao recordDao;
+    private final AlarmManager alarmManager;
+    private final SuggestAdjustedTime adjuster;
+
 
     public void scheduleDailyAlarms(int userId, DosageRecordDao dosageRecordDao, UserPatternDao userPatternDao) {
         // 여기에 알람 스케줄링 관련 로직을 작성
@@ -27,12 +37,17 @@ public class MedicationSchedulerService {
     private UserPatternDao userPatternDao;
 
     public MedicationSchedulerService(DosageRecordDao dosageRecordDao, MedicineDao medicineDao, UserPatternDao userPatternDao) {
+
+        this.recordDao = dosageRecordDao;
+        this.adjuster = new SuggestAdjustedTime(dosageRecordDao);
+        this.alarmManager = new AlarmManager();
+
         this.dosageRecordDao = dosageRecordDao;
         this.medicineDao = medicineDao;
         this.userPatternDao = userPatternDao;
     }
 
-    public void scheduleTodayMedications(int userId) {
+    public void scheduleTodayMedications(int userId, JFrame parentFrame) {
         UserPattern pattern = null;
         List<Medicine> medicines = null;
 
@@ -67,6 +82,14 @@ public class MedicationSchedulerService {
                 LocalTime scheduledTime = baseTime.plusHours(i * 4); // 임시 로직
                 LocalDateTime scheduledDateTime = LocalDateTime.of(today, scheduledTime);
 
+                SuggestAdjustedTime adjuster = new SuggestAdjustedTime(dosageRecordDao);
+                int delayMinutes = adjuster.suggestAndApplyAdjustedTime(userId, med.getMedId());
+
+                if (delayMinutes >= 15) {
+                    scheduledDateTime = scheduledDateTime.plusMinutes(delayMinutes);
+                    System.out.println("⏰ 사용자 복약 패턴에 따라 " + delayMinutes + "분 보정됨: " + scheduledDateTime);
+                }
+
                 // DosageRecord 객체 생성 부분 수정
                 DosageRecord record = new DosageRecord(); // 기본 생성자 사용
                 record.setUserId(userId);
@@ -93,7 +116,8 @@ public class MedicationSchedulerService {
                                 + ", 예정 시각: " + scheduledDateTime);
                     }
 
-                    AlarmManager.scheduleAlarm(userId, med.getMedId(), adjustedTime);
+
+                    AlarmManager.scheduleAlarm(parentFrame, userId, med.getMedId(), adjustedTime);
 
 
                 } catch (SQLException e) {
@@ -109,6 +133,35 @@ public class MedicationSchedulerService {
         }
         System.out.println("복용 스케줄 생성 완료: userId = " + userId);
     }
+
+    public void scheduleTodayAlarms(int userId, JFrame parentFrame) {
+        DosageRecordDao recordDao = new DosageRecordDao();
+
+
+        try {
+            List<DosageRecord> todayRecords = recordDao.findRecordsByUserIdAndDate(
+                    userId,
+                    LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+            );
+
+            for (DosageRecord record : todayRecords) {
+                int medId = record.getMedId();
+                LocalDateTime scheduledTime = record.getScheduledTime();
+
+                // ✅ 보정 시간 계산
+                LocalDateTime adjustedTime = adjuster.getAdjustedTime(userId, medId, scheduledTime);
+
+
+                // 보정된 시간으로 알람 예약
+                AlarmManager.scheduleAlarm(parentFrame,userId, medId, adjustedTime);
+            }
+
+        } catch (Exception e) {
+            System.err.println("오늘의 알람 예약 중 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 
     private boolean shouldTakeToday(List<String> days) {
         if (days.contains("매일")) return true;
