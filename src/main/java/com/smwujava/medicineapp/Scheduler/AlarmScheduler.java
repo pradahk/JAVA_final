@@ -15,8 +15,6 @@ import java.sql.SQLException;
 import javax.swing.JFrame;
 
 
-
-
 public class AlarmScheduler {
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private final MedicationSchedulerService medicationSchedulerService;

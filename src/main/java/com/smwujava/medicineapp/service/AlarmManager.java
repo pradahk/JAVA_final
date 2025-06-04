@@ -10,8 +10,6 @@ import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import javax.swing.JFrame;
 
-
-
 public class AlarmManager {
 
     private static final Timer timer = new Timer();

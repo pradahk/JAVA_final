@@ -8,5 +8,3 @@ public enum UserRegistrationResult {
     PASSWORD_TOO_SHORT,
     PASSWORD_NO_SPECIAL_CHAR
 }
-
-

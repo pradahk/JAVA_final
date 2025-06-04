@@ -2,15 +2,12 @@ package com.smwujava.medicineapp.service;
 
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.model.DosageRecord;
-import com.smwujava.medicineapp.service.AlarmManager; // 이 부분은 AlarmManager가 static 메서드를 가지고 있다고 가정합니다.
-
 import java.time.LocalDateTime;
 
 public class AlarmResponseHandler {
 
     private DosageRecordDao dosageRecordDao; // DosageRecordDao 인스턴스 필드 추가
 
-    // 생성자를 통해 DosageRecordDao 인스턴스를 주입받도록 변경
     public AlarmResponseHandler(DosageRecordDao dosageRecordDao) {
         this.dosageRecordDao = dosageRecordDao;
     }
@@ -18,7 +15,6 @@ public class AlarmResponseHandler {
     /**
      * 사용자의 응답에 따라 알림을 처리하고 복용 기록을 DB에 저장합니다.
      * 이 메서드는 이제 static이 아니므로 AlarmResponseHandler 인스턴스를 통해 호출해야 합니다.
-     *
      * @param response       사용자 선택 ("1", "2", "3")
      * @param userId         사용자 ID
      * @param medId          약 ID

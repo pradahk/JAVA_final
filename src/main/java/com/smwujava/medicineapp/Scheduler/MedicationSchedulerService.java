@@ -19,9 +19,7 @@ import java.time.format.DateTimeFormatter;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
-
 public class MedicationSchedulerService {
-
     private final DosageRecordDao recordDao;
     private final AlarmManager alarmManager;
     private final SuggestAdjustedTime adjuster;
