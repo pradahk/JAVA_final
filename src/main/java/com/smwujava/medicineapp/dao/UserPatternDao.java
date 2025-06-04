@@ -1,3 +1,4 @@
+//UserPatternDao
 package com.smwujava.medicineapp.dao;
 
 import com.smwujava.medicineapp.db.DBManager;
@@ -75,6 +76,7 @@ public class UserPatternDao {
             pstmt.setString(9, pattern.getSleepEndTime());       // sleep_end
 
             int affectedRows = pstmt.executeUpdate();
+            System.out.println("패턴저장" + pattern);
             return affectedRows > 0;
         } catch (SQLException e) {
             System.err.println("Error inserting or updating user pattern: " + e.getMessage());

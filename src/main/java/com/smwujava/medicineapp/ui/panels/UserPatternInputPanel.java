@@ -1,3 +1,4 @@
+//UserPatternInputPanel
 package com.smwujava.medicineapp.ui.panels;
 
 import javax.swing.*;
@@ -15,9 +16,11 @@ public class UserPatternInputPanel extends JPanel {
     private JTextField sleepStartHour, sleepStartMinute;
     private JTextField sleepEndHour, sleepEndMinute;
 
-    private Runnable onSaveCallback; // 저장 동작을 외부에서 주입받음
+    private final UserPatternController controller;
 
-    public UserPatternInputPanel() {
+    public UserPatternInputPanel(int userId, JPanel mainPanel, CardLayout cardLayout) {
+        this.controller = new UserPatternController(userId, this, mainPanel, cardLayout);
+
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(Color.WHITE);
         setBorder(BorderFactory.createEmptyBorder(20, 40, 20, 40));
@@ -74,13 +77,8 @@ public class UserPatternInputPanel extends JPanel {
         saveButton.setBackground(new Color(102, 204, 153));
         saveButton.setForeground(Color.WHITE);
         saveButton.setFocusPainted(false);
-        saveButton.addActionListener(e -> {
-            if (onSaveCallback != null) {
-                onSaveCallback.run();
-            } else {
-                JOptionPane.showMessageDialog(this, "저장 기능이 연결되지 않았습니다.", "⚠️ 오류", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+        saveButton.addActionListener(e->controller.save());
+
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setOpaque(false); // 배경 투명
         buttonPanel.add(saveButton);
@@ -183,11 +181,6 @@ public class UserPatternInputPanel extends JPanel {
                 }
             } catch (NumberFormatException ignored) { }
         }
-    }
-
-    // 외부에서 저장 동작을 연결할 수 있도록 콜백 세터
-    public void setOnSaveCallback(Runnable onSaveCallback) {
-        this.onSaveCallback = onSaveCallback;
     }
 
     // Public getter methods
