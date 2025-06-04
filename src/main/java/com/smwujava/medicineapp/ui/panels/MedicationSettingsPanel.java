@@ -163,7 +163,7 @@ public class MedicationSettingsPanel extends JPanel {
                         ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE));
                     }
                 }
-                cardLayout.show(mainPanel, "home"); // 나중에 연결될 홈 화면
+                cardLayout.show(mainPanel, "CALENDAR"); // 나중에 연결될 홈 화면
             } else {
                 JOptionPane.showMessageDialog(this, "저장에 실패했습니다.");
             }

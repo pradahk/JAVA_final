@@ -61,15 +61,12 @@ public class CalendarDayPanel extends JPanel {
         }
     }
 
-    // 색상 하나 제거
     public void removePillColor(Color color) {
         if (pillColors != null) {
             pillColors.remove(color);
             repaint();
         }
     }
-
-
 
     public int getDay() {
         return day;

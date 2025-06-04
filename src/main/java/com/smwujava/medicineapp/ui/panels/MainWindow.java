@@ -85,12 +85,12 @@ public class MainWindow extends JFrame {
     //  로그인 후에만 호출되도록 나머지 패널 구성 분리
     private void setupPanelsAfterLogin() {
         CalendarPanel calendarPanel = new CalendarPanel(cardLayout, contentPanel);
-        MedicationListPanel medicationListPanel = new MedicationListPanel(cardLayout, contentPanel);
+        //MedicationListPanel medicationListPanel = new MedicationListPanel(cardLayout, contentPanel);
         MedicationSettingsPanel medicationSettingsPanel = new MedicationSettingsPanel(userId, cardLayout, contentPanel);
         LifestylePanel lifestylePanel = new LifestylePanel();
 
         contentPanel.add(calendarPanel, "CALENDAR");
-        contentPanel.add(medicationListPanel, "LIST");
+        //contentPanel.add(medicationListPanel, "LIST");
         contentPanel.add(medicationSettingsPanel, "SETTINGS");
         contentPanel.add(lifestylePanel, "LIFESTYLE");
     }

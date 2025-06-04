@@ -2,10 +2,10 @@ package com.smwujava.medicineapp.calendar;
 
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
-import com.smwujava.medicineapp.dao.UserPatternDao; // UserPatternDao 추가
+import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.model.DosageRecord;
-import com.smwujava.medicineapp.model.UserPattern; // UserPattern 모델 추가
+import com.smwujava.medicineapp.model.UserPattern;
 import com.smwujava.medicineapp.ui.panels.CalendarPanel;
 
 import java.awt.Color;
@@ -28,16 +28,16 @@ public class CalendarController {
 
     private final MedicineDao medicineDao;
     private final DosageRecordDao dosageRecordDao;
-    private final UserPatternDao userPatternDao; // UserPatternDao 필드 추가
+    private final UserPatternDao userPatternDao;
     private CalendarPanel calendarPanel;
 
     private YearMonth currentYearMonth;
-    private final int currentUserId = 1;
+    private final int currentUserId = 1; // 애플리케이션 전체에서 관리될 사용자 ID
 
     public CalendarController() {
         this.medicineDao = new MedicineDao();
         this.dosageRecordDao = new DosageRecordDao();
-        this.userPatternDao = new UserPatternDao(); // UserPatternDao 초기화
+        this.userPatternDao = new UserPatternDao();
         this.currentYearMonth = YearMonth.now();
     }
 
@@ -47,6 +47,10 @@ public class CalendarController {
 
     public YearMonth getCurrentYearMonth() {
         return currentYearMonth;
+    }
+
+    public int getCurrentUserId() { // MedicationListPanel에 userId 전달용
+        return this.currentUserId;
     }
 
     public void loadCalendarData() {
@@ -220,23 +224,23 @@ public class CalendarController {
         return result.isEmpty() ? "시간 정보 없음" : result;
     }
 
-    private LocalDateTime calculateScheduledTimeForMedicine(LocalDate date, Medicine medicine, int userId) {
-        LocalTime baseTime = LocalTime.NOON; // 기본값 정오
+    private LocalDateTime calculateScheduledTimeForMedicine(LocalDate date, Medicine medicine, int userIdForPattern) {
+        LocalTime baseTime = LocalTime.NOON;
         try {
-            UserPattern pattern = userPatternDao.findPatternByUserId(userId);
+            UserPattern pattern = userPatternDao.findPatternByUserId(userIdForPattern);
             String medCondition = medicine.getMedCondition() != null ? medicine.getMedCondition().trim() : "";
 
             if (pattern != null) {
-                if (medCondition.contains("아침") || (medCondition.equals("식사") && medicine.getMedDailyAmount() > 0 )) { // "식사"이고 하루 복용횟수가 있다면 아침을 기본으로 가정 (개선 필요)
-                    baseTime = pattern.getBreakfastStartTime() != null ? LocalTime.parse(pattern.getBreakfastStartTime()) : LocalTime.of(8,0);
+                if (medCondition.contains("아침") || (medCondition.equals("식사") && medicine.getMedDailyAmount() > 0 )) {
+                    baseTime = pattern.getBreakfastStartTime() != null && !pattern.getBreakfastStartTime().equals(":") ? LocalTime.parse(pattern.getBreakfastStartTime()) : LocalTime.of(8,0);
                 } else if (medCondition.contains("점심")) {
-                    baseTime = pattern.getLunchStartTime() != null ? LocalTime.parse(pattern.getLunchStartTime()) : LocalTime.of(12,0);
+                    baseTime = pattern.getLunchStartTime() != null && !pattern.getLunchStartTime().equals(":") ? LocalTime.parse(pattern.getLunchStartTime()) : LocalTime.of(12,0);
                 } else if (medCondition.contains("저녁")) {
-                    baseTime = pattern.getDinnerStartTime() != null ? LocalTime.parse(pattern.getDinnerStartTime()) : LocalTime.of(18,0);
+                    baseTime = pattern.getDinnerStartTime() != null && !pattern.getDinnerStartTime().equals(":") ? LocalTime.parse(pattern.getDinnerStartTime()) : LocalTime.of(18,0);
                 } else if (medCondition.contains("수면") || medCondition.contains("취침")) {
-                    baseTime = pattern.getSleepStartTime() != null ? LocalTime.parse(pattern.getSleepStartTime()) : LocalTime.of(22,0);
+                    baseTime = pattern.getSleepStartTime() != null && !pattern.getSleepStartTime().equals(":") ? LocalTime.parse(pattern.getSleepStartTime()) : LocalTime.of(22,0);
                 }
-            } else { // 사용자 패턴이 없을 경우의 기본값
+            } else {
                 if (medCondition.contains("아침")) baseTime = LocalTime.of(8, 0);
                 else if (medCondition.contains("점심")) baseTime = LocalTime.of(12, 0);
                 else if (medCondition.contains("저녁")) baseTime = LocalTime.of(18, 0);
@@ -244,12 +248,9 @@ public class CalendarController {
             }
         } catch (SQLException e) {
             System.err.println("UserPattern 조회 오류 in calculateScheduledTime: " + e.getMessage());
-            // 기본값으로 계속 진행
         } catch (Exception e) {
-            System.err.println("시간 변환 오류 in calculateScheduledTime: " + e.getMessage());
-            // 기본값으로 계속 진행
+            System.err.println("시간 변환 오류 in calculateScheduledTime ("+ medicine.getMedCondition() +"): " + e.getMessage());
         }
-
 
         String medTiming = medicine.getMedTiming() != null ? medicine.getMedTiming() : "";
         int medMinutes = medicine.getMedMinutes();

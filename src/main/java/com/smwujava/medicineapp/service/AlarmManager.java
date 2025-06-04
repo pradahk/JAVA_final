@@ -8,6 +8,8 @@ import java.util.TimerTask;
 import com.smwujava.medicineapp.ui.alerts.AlarmPopup;
 import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
+import javax.swing.JFrame;
+
 
 
 public class AlarmManager {
@@ -15,15 +17,15 @@ public class AlarmManager {
     private static final Timer timer = new Timer();
     private static final Map<Integer, TimerTask> scheduledTasks = new HashMap<>();
 
-    public static void triggerAlarm(int userId, int medId, LocalDateTime scheduledTime) {
+    public static void triggerAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime scheduledTime) {
         MedicineDao medicineDao = new MedicineDao();
         String medName = medicineDao.findMedicineNameById(medId);  // 약 이름 조회
-        AlarmPopup.show(userId, medId, scheduledTime, medName);  // 약 이름 포함해서 팝업 실행
+        AlarmPopup.show(parentFrame, userId, medId, scheduledTime, medName);  // 약 이름 포함해서 팝업 실행
     }
 
-    public static void snoozeAlarm(int userId, int medId, int minutes) {
-        LocalDateTime newTime = LocalDateTime.now().plusMinutes(minutes);
-        scheduleAlarm(userId, medId, newTime);
+    public static void snoozeAlarm(JFrame parentFrame, int userId, int medId, int minutes) {
+        LocalDateTime newTime = LocalDateTime.now().plusSeconds(10);  // ✅ 테스트용
+        scheduleAlarm(parentFrame, userId, medId, newTime);
     }
 
     public static void cancelAlarm(int medId) {
@@ -52,7 +54,7 @@ public class AlarmManager {
             @Override
             public void run() {
                 System.out.println("[재알림] User " + userId + "님, 약(" + medId + ")을 복용할 시간입니다! (재알림)");
-                triggerAlarm(userId, medId, newTime);
+                triggerAlarm(null,userId, medId, newTime);
             }
         };
 
@@ -61,7 +63,7 @@ public class AlarmManager {
         System.out.println("재알림 예약 완료 → userId=" + userId + ", medId=" + medId + ", 시간=" + newTime);
     }
 
-    public static void scheduleAlarm(int userId, int medId, LocalDateTime time) {
+    public static void scheduleAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime time) {
         cancelAlarm(medId);  // 중복 방지
 
         // 🔽 사용자 복약 패턴 기반 알람 시간 자동 조정 추가
@@ -87,7 +89,7 @@ public class AlarmManager {
             @Override
             public void run() {
                 System.out.println("[알림] User " + userId + "님, 약(" + medId + ")을 복용할 시간입니다!");
-                triggerAlarm(userId, medId, scheduledTime);
+                triggerAlarm(parentFrame, userId, medId, scheduledTime);
             }
         };
 

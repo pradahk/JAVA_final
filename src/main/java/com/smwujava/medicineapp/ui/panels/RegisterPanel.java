@@ -1,6 +1,6 @@
 package com.smwujava.medicineapp.ui.panels;
 
-import com.smwujava.medicineapp.model.User;
+import com.smwujava.medicineapp.model.UserRegistrationResult;
 import com.smwujava.medicineapp.service.UserService;
 
 import javax.swing.*;
@@ -8,69 +8,54 @@ import java.awt.*;
 
 public class RegisterPanel extends JPanel {
 
-    private MainWindow mainWindow;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
+    private final UserService userService = UserService.getInstance();
 
-    public RegisterPanel(MainWindow mainWindow) {
-        this.mainWindow = mainWindow;
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-        setBackground(Color.WHITE);
+    public RegisterPanel(Container parent) {
+        setLayout(new GridLayout(4, 2, 10, 10));
+        setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
-        add(Box.createVerticalStrut(30));
-
-        JLabel titleLabel = new JLabel("회원가입");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        add(titleLabel);
-
-        add(Box.createVerticalStrut(30));
-
-        JTextField usernameField = new JTextField();
-        usernameField.setMaximumSize(new Dimension(250, 40));
-        usernameField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        usernameField.setBorder(BorderFactory.createTitledBorder("아이디"));
+        add(new JLabel("사용자 이름:"));
+        usernameField = new JTextField();
         add(usernameField);
 
-        add(Box.createVerticalStrut(15));
-
-        JPasswordField passwordField = new JPasswordField();
-        passwordField.setMaximumSize(new Dimension(250, 40));
-        passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        passwordField.setBorder(BorderFactory.createTitledBorder("비밀번호"));
+        add(new JLabel("비밀번호:"));
+        passwordField = new JPasswordField();
         add(passwordField);
 
-        add(Box.createVerticalStrut(30));
+        add(new JLabel()); // 빈 셀
+        JButton registerBtn = new JButton("회원가입");
+        add(registerBtn);
 
-        JButton registerButton = new JButton("회원가입 완료");
-        registerButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        registerButton.setBackground(new Color(120, 140, 255));
-        registerButton.setForeground(Color.WHITE);
-        registerButton.setFocusPainted(false);
-        registerButton.setPreferredSize(new Dimension(250, 40));
-        registerButton.setMaximumSize(new Dimension(250, 40));
-        add(registerButton);
-        registerButton.addActionListener(e -> {
+        registerBtn.addActionListener(e -> handleRegister());
+    }
 
-            JOptionPane.showMessageDialog(this, "회원가입이 완료되었습니다."); // 입력값 검증 및 회원가입 처리 생략...wMessageDialog(this, "회원가입이 완료되었습니다.");
-            mainWindow.showLoginPanel(); // 로그인 화면으로 전환
+    private void handleRegister() {
+        String username = usernameField.getText().trim();
+        String password = new String(passwordField.getPassword());
 
-            registerButton.addActionListener(ev -> {
-                String username = usernameField.getText().trim();
-                String password = new String(passwordField.getPassword()).trim();
+        UserRegistrationResult result = userService.validateRegistration(username, password);
 
-                if (username.isEmpty() || password.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "아이디와 비밀번호를 모두 입력해주세요.");
-                    return;
-                }
+        switch (result) {
+            case DUPLICATE_USERNAME:
+                JOptionPane.showMessageDialog(this, "이미 존재하는 사용자명입니다.", "회원가입 실패", JOptionPane.ERROR_MESSAGE);
+                break;
+            case PASSWORD_TOO_SHORT:
+                JOptionPane.showMessageDialog(this, "비밀번호는 최소 7자 이상이어야 합니다.", "회원가입 실패", JOptionPane.ERROR_MESSAGE);
+                break;
+            case PASSWORD_NO_SPECIAL_CHAR:
+                JOptionPane.showMessageDialog(this, "비밀번호에 특수문자를 포함해야 합니다.", "회원가입 실패", JOptionPane.ERROR_MESSAGE);
+                break;
+            case SUCCESS:
+                userService.registerUser(username, password);
+                JOptionPane.showMessageDialog(this, "회원가입이 완료되었습니다!", "성공", JOptionPane.INFORMATION_MESSAGE);
+                break;
+            default:
+                JOptionPane.showMessageDialog(this, "알 수 없는 오류가 발생했습니다.", "오류", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
 
-                UserService userService = UserService.getInstance();
-                boolean success = userService.registerUser(username, password);
 
-                if (success) {
-                    JOptionPane.showMessageDialog(this, "회원가입이 완료되었습니다. 로그인 화면으로 이동합니다.");
-                    mainWindow.showLoginPanel();  // 로그인 화면으로 전환
-                } else {
-                    JOptionPane.showMessageDialog(this, "회원가입 실패: 이미 존재하는 아이디입니다.");
-                }
-            });
-        });
-    }}
+
