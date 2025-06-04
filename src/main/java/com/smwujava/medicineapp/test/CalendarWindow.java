@@ -1,55 +1,21 @@
-package com.smwujava.medicineapp.test; // 패키지 선언 변경
+package com.smwujava.medicineapp.test; // 또는 com.smwujava.medicineapp;
 
 import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.ui.panels.CalendarPanel;
+import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
 import com.smwujava.medicineapp.Scheduler.AlarmScheduler;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
-import com.smwujava.medicineapp.service.AlarmManager;
+// import com.smwujava.medicineapp.service.AlarmManager; // AlarmPopupWindow에서 직접 사용
+// import java.time.LocalDateTime; // AlarmPopupWindow에서 직접 사용
 
-
-import java.time.LocalDateTime;
 import javax.swing.*;
 import java.awt.*;
 
 public class CalendarWindow {
-    private static JFrame frame;
 
-    public static void launch() {
-        if (frame != null && frame.isVisible()) {
-            return; // 이미 열려 있음
-        }
-
-        SwingUtilities.invokeLater(() -> {
-            frame = new JFrame("나의 약 복용 캘린더");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setLayout(new BorderLayout());
-
-            CardLayout appCardLayout = new CardLayout();
-            JPanel mainContentPanel = new JPanel(appCardLayout);
-
-            CalendarPanel calendarPage = new CalendarPanel(appCardLayout, mainContentPanel);
-            mainContentPanel.add(calendarPage, "CALENDAR_PAGE");
-
-            frame.add(mainContentPanel, BorderLayout.CENTER);
-            appCardLayout.show(mainContentPanel, "CALENDAR_PAGE");
-
-            frame.setMinimumSize(new Dimension(900, 700));
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
-        });
-    }
-
-    public static JFrame getFrame() {
-        return frame;
-    }
-
-    public static boolean isOpen() {
-        return frame != null && frame.isVisible();
-    }
-
+    private static JFrame mainFrameInstance; // 정적 프레임 인스턴스
 
     public static void main(String[] args) {
         try {
@@ -62,42 +28,54 @@ public class CalendarWindow {
         }
 
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("나의 약 복용 캘린더 (Test Window)");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setLayout(new BorderLayout());
+            // mainFrameInstance에 생성된 프레임 할당
+            mainFrameInstance = new JFrame("나의 약 복용 캘린더");
+            mainFrameInstance.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            mainFrameInstance.setLayout(new BorderLayout());
 
             CardLayout appCardLayout = new CardLayout();
             JPanel mainContentPanel = new JPanel(appCardLayout);
 
+            final int currentUserId = 1;
+
             CalendarPanel calendarPage = new CalendarPanel(appCardLayout, mainContentPanel);
+            MedicationSettingsPanel settingsPage = new MedicationSettingsPanel(currentUserId, appCardLayout, mainContentPanel);
 
-            mainContentPanel.add(calendarPage, "CALENDAR_PAGE");
-            frame.add(mainContentPanel, BorderLayout.CENTER);
-            appCardLayout.show(mainContentPanel, "CALENDAR_PAGE");
+            mainContentPanel.add(calendarPage, "CALENDAR");
+            mainContentPanel.add(settingsPage, "SETTINGS");
 
-            frame.setMinimumSize(new Dimension(900, 700));
-            frame.pack();
-            frame.setLocationRelativeTo(null);
-            frame.setVisible(true);
+            mainFrameInstance.add(mainContentPanel, BorderLayout.CENTER);
 
-            // ✅ 알람 스케줄러 실행
+            // BottomNavPanel이 있다면 여기에 추가
+            // Consumer<String> navigator = panelName -> appCardLayout.show(mainContentPanel, panelName);
+            // BottomNavPanel bottomNav = new BottomNavPanel(navigator);
+            // mainFrameInstance.add(bottomNav, BorderLayout.SOUTH);
+
+            appCardLayout.show(mainContentPanel, "CALENDAR");
+
+            mainFrameInstance.setMinimumSize(new Dimension(900, 700));
+            mainFrameInstance.pack();
+            mainFrameInstance.setLocationRelativeTo(null);
+            mainFrameInstance.setVisible(true);
+
             AlarmScheduler scheduler = new AlarmScheduler(
-                    frame,
-                    1,
+                    mainFrameInstance,
+                    currentUserId,
                     new DosageRecordDao(),
                     new UserPatternDao(),
                     new MedicineDao()
             );
-            scheduler.start();  // 알람이 캘린더와 함께 작동됨!
-
-            // ✅ 테스트용 알람: 5초 뒤 자동 알람 (medId = 101)
-            AlarmManager.scheduleAlarm(
-                    frame,
-                    1, // userId
-                    101, // medId (DB에 존재하는 값이면 좋음)
-                    LocalDateTime.now().plusSeconds(5)
-            );// 5초 뒤 알람
+            scheduler.start();
         });
     }
-}
 
+    // AlarmPopupWindow에서 사용할 수 있도록 getFrame() 메서드 복구
+    public static JFrame getFrame() {
+        return mainFrameInstance;
+    }
+
+    // AlarmPopupWindow에서 사용할 수 있도록 isOpen() 메서드 복구
+    public static boolean isOpen() {
+        return mainFrameInstance != null && mainFrameInstance.isVisible();
+    }
+}

@@ -1,14 +1,17 @@
 package com.smwujava.medicineapp.ui.panels;
 
-import com.smwujava.medicineapp.calendar.CalendarController; // 컨트롤러 임포트
+import com.smwujava.medicineapp.calendar.CalendarController;
 import com.smwujava.medicineapp.ui.components.CalendarDayPanel;
 import com.smwujava.medicineapp.Scheduler.MedicationSchedulerService;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
-
+import com.smwujava.medicineapp.dao.MedicineDao;
+import com.smwujava.medicineapp.dao.UserPatternDao;
 
 import javax.swing.*;
 import javax.swing.border.LineBorder;
 import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.DayOfWeek;
@@ -18,27 +21,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import com.smwujava.medicineapp.dao.MedicineDao;
-import com.smwujava.medicineapp.dao.UserPatternDao;
-
-
 
 public class CalendarPanel extends JPanel {
     DosageRecordDao recordDao = new DosageRecordDao();
     MedicineDao medicineDao = new MedicineDao();
     UserPatternDao userPatternDao = new UserPatternDao();
 
-
-
-    // private final Map<Integer, CalendarDayPanel> dayPanels = new HashMap<>(); // Controller가 데이터를 관리하므로 직접 참조 불필요할 수 있음
-    private MedicationListPanel medicationListPanel; // 원본 MedicationListPanel 타입
-    // private int selectedDay = 4; // Controller가 선택된 날짜 관리
-
+    private MedicationListPanel medicationListPanel;
     private final CalendarController controller;
-    private JLabel monthLabelCurrent; // 동적으로 월 표시할 레이블
-    private JPanel dateGridPanel;     // 날짜 셀들이 들어갈 패널
+    private JLabel monthLabelCurrent;
+    private JPanel dateGridPanel;
     private CalendarDayPanel currentlyHighlightedDayPanel = null;
-    private int currentSelectedDayForList = -1; // MedicationListPanel에 전달할 날짜
+    private int currentSelectedDayForList = -1;
 
     public CalendarPanel(CardLayout cardLayout, JPanel parentPanel) {
         this.controller = new CalendarController();
@@ -49,13 +43,12 @@ public class CalendarPanel extends JPanel {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.BOTH;
-        gbc.insets = new Insets(10, 10, 10, 10); // 여백 조정
+        gbc.insets = new Insets(10, 10, 10, 10);
         gbc.weighty = 1.0;
 
-        JPanel calendarContainer = new JPanel(new BorderLayout(0,10)); // 상하 간격
-        calendarContainer.setOpaque(false); // 배경 투명하게 하여 CalendarPanel 배경색 사용
+        JPanel calendarContainer = new JPanel(new BorderLayout(0,10));
+        calendarContainer.setOpaque(false);
 
-        // 상단 컨트롤 (이전/다음 버튼, 월 표시)
         JPanel topNavPanel = new JPanel(new BorderLayout());
         topNavPanel.setOpaque(false);
         JButton prevButton = new JButton("‹");
@@ -71,44 +64,44 @@ public class CalendarPanel extends JPanel {
         topNavPanel.add(nextButton, BorderLayout.EAST);
         calendarContainer.add(topNavPanel, BorderLayout.NORTH);
 
-        dateGridPanel = new JPanel(new GridLayout(0, 7, 4, 4)); // 행 자동, 7열
+        dateGridPanel = new JPanel(new GridLayout(0, 7, 4, 4));
         dateGridPanel.setBackground(Color.WHITE);
         calendarContainer.add(dateGridPanel, BorderLayout.CENTER);
 
         gbc.gridx = 0;
-        gbc.weightx = 0.7; // 캘린더 영역 비율
+        gbc.weightx = 0.7;
         add(calendarContainer, gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.3; // 약물 목록 영역 비율
-        // 원본 MedicationListPanel 사용
-        medicationListPanel = new MedicationListPanel(cardLayout, parentPanel);
-        medicationListPanel.setCalendarPanel(this); // MedicationListPanel이 CalendarPanel을 참조해야 할 경우
+        gbc.weightx = 0.3;
+        // MedicationListPanel 생성 시 Controller로부터 userId를 받아 전달
+        medicationListPanel = new MedicationListPanel(cardLayout, parentPanel, this.controller.getCurrentUserId());
+        medicationListPanel.setCalendarPanel(this);
         add(medicationListPanel, gbc);
 
-        controller.loadCalendarData(); // 컨트롤러 통해 초기 데이터 로드
+        this.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentShown(ComponentEvent e) {
+                if (controller != null) {
+                    controller.loadCalendarData();
+                }
+            }
+        });
     }
 
     public CalendarController getController() {
         return this.controller;
     }
 
+    public void refresh() {
+        if (controller != null) {
+            controller.loadCalendarData();
+        }
+    }
+
     public void updateMonthYearLabel(String formattedMonthYear) {
         monthLabelCurrent.setText(formattedMonthYear);
     }
-
-    private void setupCalendar() {
-        controller.loadCalendarData();  // 컨트롤러가 날짜 셀을 다시 구성해줌
-    }
-
-    public void refresh() {
-        System.out.println("[CalendarPanel] refresh() 호출됨 - 복약 기록을 다시 불러옵니다.");
-        this.removeAll();        // 기존 컴포넌트 제거
-        this.revalidate();       // 레이아웃 재계산
-        this.repaint();        //다시 그리기
-        setupCalendar();      // 날짜 그리드 다시 구성
-    }
-
 
     public void displayCalendarGrid(YearMonth yearMonthToDisplay, Map<Integer, List<Color>> dayPillColorsMap) {
         dateGridPanel.removeAll();
@@ -148,13 +141,13 @@ public class CalendarPanel extends JPanel {
                         currentlyHighlightedDayPanel.setBackground(Color.WHITE);
                         currentlyHighlightedDayPanel.setBorder(null);
                     }
-                    cell.setBackground(new Color(200, 220, 255)); // 하이라이트 색상
+                    cell.setBackground(new Color(200, 220, 255));
                     cell.setBorder(new LineBorder(Color.BLUE, 1));
                     currentlyHighlightedDayPanel = cell;
                     currentSelectedDayForList = currentDayForListener;
 
-                    medicationListPanel.setSelectedDay(currentSelectedDayForList); // MedicationListPanel에 날짜 알림 (제목 변경 등)
-                    controller.loadMedicationsForDay(cellDate); // 컨트롤러에 약물 로드 요청
+                    if(medicationListPanel != null) medicationListPanel.setSelectedDay(currentSelectedDayForList);
+                    controller.loadMedicationsForDay(cellDate);
                 }
             });
             dateGridPanel.add(cell);
@@ -175,18 +168,14 @@ public class CalendarPanel extends JPanel {
     }
 
     public void updateMedicationList(List<CalendarPanel.MedicationInfo> medicationDetails) {
-        medicationListPanel.updateMedications(medicationDetails);
+        if(medicationListPanel != null) medicationListPanel.updateMedications(medicationDetails);
     }
 
     public void triggerTodayAlarm(int userId) {
-        // 현재 CalendarPanel이 붙어 있는 최상위 JFrame을 찾음
         JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-
-        // 서비스 객체 생성 및 알람 예약 요청
         MedicationSchedulerService scheduler = new MedicationSchedulerService(recordDao, medicineDao, userPatternDao);
         scheduler.scheduleTodayMedications(userId, parentFrame);
     }
-
 
     public void selectDayInUI(int dayToSelect) {
         if (currentlyHighlightedDayPanel != null) {
@@ -227,7 +216,6 @@ public class CalendarPanel extends JPanel {
         }
     }
 
-    // MedicationInfo DTO (medId, isTaken 필드 포함된 버전)
     public static class MedicationInfo {
         private final int medId;
         private final String name;
@@ -248,7 +236,7 @@ public class CalendarPanel extends JPanel {
         public String getTime() { return time; }
         public Color getColor() { return color; }
         public boolean isTaken() { return isTaken; }
-        public void setTaken(boolean taken) { isTaken = taken; } // 필요시 상태 변경용
+        public void setTaken(boolean taken) { isTaken = taken; }
 
         @Override
         public boolean equals(Object o) {
@@ -264,5 +252,3 @@ public class CalendarPanel extends JPanel {
         }
     }
 }
-
-
