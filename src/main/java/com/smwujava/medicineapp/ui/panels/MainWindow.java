@@ -1,3 +1,5 @@
+/*
+
 package com.smwujava.medicineapp.ui.panels;
 
 import javax.swing.*;
@@ -102,3 +104,5 @@ public class MainWindow extends JFrame {
         SwingUtilities.invokeLater(MainWindow::new);
     }
 }
+
+*/

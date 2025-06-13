@@ -1,3 +1,4 @@
+/*
 package com.smwujava.medicineapp.ui;
 
 import com.formdev.flatlaf.FlatLightLaf;
@@ -18,3 +19,5 @@ public class MainApp {
         });
     }
 }
+
+*/
