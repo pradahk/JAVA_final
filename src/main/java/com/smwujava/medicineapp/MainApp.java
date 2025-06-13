@@ -6,10 +6,10 @@ import com.smwujava.medicineapp.music.BGMPlayer;
 import com.smwujava.medicineapp.service.UserService;
 import com.smwujava.medicineapp.ui.panels.*;
 import com.smwujava.medicineapp.admin.AdminDashboardPanel;
-import com.smwujava.medicineapp.Scheduler.AlarmScheduler; // 누락된 import 추가
-import com.smwujava.medicineapp.dao.DosageRecordDao; // 누락된 import 추가
-import com.smwujava.medicineapp.dao.MedicineDao; // 누락된 import 추가
-import com.smwujava.medicineapp.dao.UserPatternDao; // 누락된 import 추가
+import com.smwujava.medicineapp.Scheduler.AlarmScheduler;
+import com.smwujava.medicineapp.dao.DosageRecordDao;
+import com.smwujava.medicineapp.dao.MedicineDao;
+import com.smwujava.medicineapp.dao.UserPatternDao;
 
 import javax.swing.*;
 import java.awt.*;
@@ -88,7 +88,6 @@ public class MainApp {
         pageContainer.add(lifestylePage, "LIFESTYLE");
         pageContainer.add(settingsPage, "SETTINGS");
 
-        // --- 여기 부분을 수정했습니다 ---
         Consumer<String> navigator = panelName -> pageCardLayout.show(pageContainer, panelName);
         BottomNavPanel bottomNav = new BottomNavPanel(navigator);
 
@@ -104,7 +103,7 @@ public class MainApp {
     }
 
     private void startBGM() {
-        bgmPlayer = new BGMPlayer("/music/bgm.wav");
+        bgmPlayer = new BGMPlayer("/music/background_music.wav");
         bgmPlayer.start();
     }
 

@@ -3,11 +3,11 @@ package com.smwujava.medicineapp.music;
 import javax.sound.sampled.*;
 import java.io.IOException;
 import java.net.URL;
-import java.io.FileNotFoundException;
 
 public class BGMPlayer extends Thread {
     private String resourcePath;
     private Clip clip;
+    private volatile boolean isRunning = true; // 스레드 실행 상태를 제어하기 위한 플래그
 
     public BGMPlayer(String resourcePath) {
         this.resourcePath = resourcePath;
@@ -15,67 +15,43 @@ public class BGMPlayer extends Thread {
 
     @Override
     public void run() {
-        AudioInputStream audioStream = null;
         try {
             URL audioURL = getClass().getResource(resourcePath);
             if (audioURL == null) {
-                throw new FileNotFoundException("Resource not found in classpath: " + resourcePath);
-            }
-            audioStream = AudioSystem.getAudioInputStream(audioURL);
-
-            AudioFormat format = audioStream.getFormat();
-            DataLine.Info info = new DataLine.Info(Clip.class, format);
-
-            if (!AudioSystem.isLineSupported(info)) {
-                System.err.println("Error: Audio line for this format is not supported for resource: " + resourcePath);
+                System.err.println("BGMPlayer: [오류] 리소스를 찾지 못했습니다: " + resourcePath);
                 return;
             }
 
-            clip = (Clip) AudioSystem.getLine(info);
-            clip.open(audioStream);
+            try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioURL)) {
+                clip = (Clip) AudioSystem.getLine(new DataLine.Info(Clip.class, audioStream.getFormat()));
+                clip.open(audioStream);
+                clip.loop(Clip.LOOP_CONTINUOUSLY);
+                clip.start();
 
-            clip.loop(Clip.LOOP_CONTINUOUSLY); // 루프 재생 시작
-            clip.start(); // 음악 재생 시작
-
-            while (clip.isRunning()) {
-                Thread.sleep(100);
+                while (isRunning) {
+                    Thread.sleep(100);
+                }
             }
-
-        } catch (FileNotFoundException e) {
-            System.err.println("BGM Loading Error: " + e.getMessage());
         } catch (UnsupportedAudioFileException e) {
-            System.err.println("BGM Format Error: Unsupported audio file format for " + resourcePath + ". Please use WAV format.");
-            e.printStackTrace();
+            System.err.println("BGMPlayer: 지원하지 않는 오디오 파일 형식입니다: " + resourcePath);
         } catch (IOException e) {
-            System.err.println("BGM IO Error: Problem reading audio resource " + resourcePath + ": " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("BGMPlayer: 오디오 파일 입출력 오류: " + resourcePath);
         } catch (LineUnavailableException e) {
-            System.err.println("BGM Audio Line Error: Audio line not available. Check sound device or if another app is using it.");
-            e.printStackTrace();
+            System.err.println("BGMPlayer: 오디오 라인을 사용할 수 없습니다. 사운드 장치를 확인해주세요.");
         } catch (InterruptedException e) {
-            System.err.println("BGMPlayer thread was interrupted during playback for " + resourcePath + ".");
+            System.out.println("BGMPlayer: 스레드가 중지되었습니다.");
             Thread.currentThread().interrupt();
         } finally {
             if (clip != null) {
+                clip.stop();
                 clip.close();
             }
-            if (audioStream != null) {
-                try {
-                    audioStream.close();
-                } catch (IOException e) {
-                    System.err.println("Error closing audio stream: " + e.getMessage());
-                }
-            }
-            System.out.println("BGMPlayer thread finished or stopped for " + resourcePath);
+            System.out.println("BGMPlayer: 스레드 및 오디오 리소스가 완전히 종료되었습니다.");
         }
     }
 
     public void stopBGM() {
-        if (clip != null && clip.isRunning()) {
-            clip.stop();
-            clip.close();
-            this.interrupt();
-            System.out.println("BGM stopped for " + resourcePath);
-        }
+        isRunning = false; // 루프를 종료하도록 플래그 변경
+        this.interrupt();  // sleep 상태에서 즉시 깨어나도록 인터럽트
     }
 }
