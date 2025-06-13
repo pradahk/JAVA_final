@@ -1,4 +1,3 @@
-//UserPatternInputPanel
 package com.smwujava.medicineapp.ui.panels;
 
 import javax.swing.*;
