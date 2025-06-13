@@ -54,7 +54,6 @@ public class AdminDashboardPanel extends JPanel {
         // 설명 패널 추가
         ChartDescriptionPanel descPanel = new ChartDescriptionPanel(bestTimeSlot, overallAvg);
         chartPanel.add(descPanel);
-
         bottomPanel.add(chartPanel, BorderLayout.CENTER);
 
         // 전체 구성
