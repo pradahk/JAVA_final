@@ -1,151 +1,113 @@
 package com.smwujava.medicineapp.ui.panels;
 
 import com.smwujava.medicineapp.dao.DosageRecordDao;
+import com.smwujava.medicineapp.calendar.CalendarMedicineCard;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.time.LocalDate;
 
 public class MedicationListPanel extends JPanel {
     private JPanel listContainer;
     private CardLayout cardLayout;
     private JPanel parentPanel;
-
     private CalendarPanel calendarPanel;
-    private int selectedDay = 4;
+    private JLabel titleLabel;
+    private CountdownPanel countdownPanel; // CountdownPanel을 필드로 유지
+    private final int currentUserId; // 생성자를 통해 userId를 받음
 
-    public MedicationListPanel(CardLayout cardLayout, JPanel parentPanel) {
+    public MedicationListPanel(CardLayout cardLayout, JPanel parentPanel, int userId) { // userId 파라미터 추가
         this.cardLayout = cardLayout;
         this.parentPanel = parentPanel;
+        this.currentUserId = userId; // 전달받은 userId 저장
 
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
 
-        // ---------------- 상단 제목 + 버튼 ----------------
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 10, 20));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 20));
 
-        JLabel titleLabel = new JLabel("복용 약 목록");
-        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
+        titleLabel = new JLabel("복용 약 목록");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         headerPanel.add(titleLabel, BorderLayout.WEST);
 
         JButton addButton = new JButton("+");
-        addButton.setPreferredSize(new Dimension(40, 40));
+        addButton.setPreferredSize(new Dimension(35, 35));
+        addButton.setFont(new Font("SansSerif", Font.BOLD, 16));
         addButton.setFocusPainted(false);
-        addButton.setBackground(Color.WHITE);
-        addButton.addActionListener(e -> cardLayout.show(parentPanel, "SETTINGS"));
+        addButton.setBackground(new Color(220, 220, 220));
+        addButton.addActionListener(e -> {
+            if (this.cardLayout != null && this.parentPanel != null) {
+                this.cardLayout.show(this.parentPanel, "SETTINGS");
+            }
+        });
         headerPanel.add(addButton, BorderLayout.EAST);
-
         add(headerPanel, BorderLayout.NORTH);
 
-        // ---------------- 약 카드 리스트 ----------------
         listContainer = new JPanel();
         listContainer.setLayout(new BoxLayout(listContainer, BoxLayout.Y_AXIS));
         listContainer.setBackground(Color.WHITE);
+        listContainer.setBorder(BorderFactory.createEmptyBorder(0, 15, 10, 15));
 
-        // ✅ 약 복용 타이머 (CountdownPanel 연결)
-        CountdownPanel countdownPanel = new CountdownPanel(new DosageRecordDao(), 1);
+        // CountdownPanel 생성 및 listContainer에 초기 추가
+        countdownPanel = new CountdownPanel(new DosageRecordDao(), this.currentUserId); // 저장된 userId 사용
         countdownPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         listContainer.add(countdownPanel);
-
-        // 예시 복약 카드
-        addMedicationCard("Omeprazol (오메프라졸)", "식전 30분\n오전 12:00", new Color(181, 169, 255));
-        addMedicationCard("Panpyrin-Q (판피린-Q)", "식전\n오후 7:30", new Color(232, 253, 148));
-        addMedicationCard("Ibuprofen (이부프로펜)", "식후 30분\n오후 7:00", Color.LIGHT_GRAY);
+        listContainer.add(Box.createVerticalStrut(10));
 
         JScrollPane scrollPane = new JScrollPane(listContainer);
         scrollPane.setBorder(null);
-        scrollPane.getVerticalScrollBar().setUnitIncrement(10);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         add(scrollPane, BorderLayout.CENTER);
     }
 
-    public void addMedicationCard(String name, String timing, Color trueColor) {
-        Color defaultGray = new Color(245, 245, 245);
+    public void updateMedications(List<CalendarPanel.MedicationInfo> meds) {
+        listContainer.removeAll(); // 모든 컴포넌트 제거 (CountdownPanel 포함)
 
-        var card = new JPanel() {
-            private Color currentColor = defaultGray;
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                super.paintComponent(g);
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(currentColor);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
-                g2.dispose();
-            }
-
-            public void switchToTrueColor() {
-                this.currentColor = trueColor;
-                repaint();
-            }
-
-            public void switchToDefaultColor() {
-                this.currentColor = defaultGray;
-                repaint();
-            }
-
-            public boolean isTrueColor() {
-                return this.currentColor.equals(trueColor);
-            }
-        };
-
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setOpaque(false);
-        card.setPreferredSize(new Dimension(430, 60));
-        card.setMaximumSize(new Dimension(430, 60));
-        card.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-
-        JLabel nameLabel = new JLabel(name);
-        nameLabel.setFont(new Font("SansSerif", Font.BOLD, 13));
-        JLabel timeLabel = new JLabel("<html>" + timing.replaceAll("\n", "<br>") + "</html>");
-        timeLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-
-        card.add(nameLabel);
-        card.add(timeLabel);
-        card.putClientProperty("clicked", false);
-
-        card.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                boolean clicked = (boolean) card.getClientProperty("clicked");
-                if (calendarPanel != null) {
-                    if (!clicked) {
-                        card.switchToTrueColor();
-                        card.putClientProperty("clicked", true);
-                        calendarPanel.addMedicationToDay(selectedDay,
-                                new CalendarPanel.MedicationInfo(name, timing, trueColor));
-                    } else {
-                        card.switchToDefaultColor();
-                        card.putClientProperty("clicked", false);
-                        calendarPanel.removeMedicationColorFromDay(selectedDay, trueColor);
-                    }
-                }
-            }
-        });
-
+        // CountdownPanel 다시 추가 (항상 최상단에 위치)
+        if (countdownPanel == null) { // 혹시 모를 경우 대비 (일반적으로는 생성자에서 생성됨)
+            countdownPanel = new CountdownPanel(new DosageRecordDao(), this.currentUserId);
+            countdownPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        }
+        listContainer.add(countdownPanel);
         listContainer.add(Box.createVerticalStrut(10));
-        listContainer.add(card);
+
+        if (meds == null || meds.isEmpty()) {
+            JLabel noMedsLabel = new JLabel("선택된 날짜에 복용할 약물이 없습니다.");
+            noMedsLabel.setHorizontalAlignment(SwingConstants.CENTER);
+            noMedsLabel.setFont(new Font("SansSerif", Font.PLAIN, 14));
+            noMedsLabel.setForeground(Color.GRAY);
+            noMedsLabel.setBorder(BorderFactory.createEmptyBorder(10,0,0,0));
+            noMedsLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            listContainer.add(noMedsLabel);
+        } else {
+            for (CalendarPanel.MedicationInfo medInfo : meds) {
+                CalendarMedicineCard card = new CalendarMedicineCard(medInfo);
+                card.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+                card.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        if (calendarPanel != null) {
+                            CalendarPanel.MedicationInfo clickedMedInfo = card.getMedicationInfo();
+                            calendarPanel.notifyMedicationStatusChanged(
+                                    clickedMedInfo.getMedId(),
+                                    !clickedMedInfo.isTaken()
+                            );
+                        }
+                    }
+                });
+                listContainer.add(card);
+                listContainer.add(Box.createVerticalStrut(10));
+            }
+        }
         listContainer.revalidate();
         listContainer.repaint();
-    }
-
-    public void updateMedications(List<CalendarPanel.MedicationInfo> meds) {
-        listContainer.removeAll();
-
-        CountdownPanel countdownPanel = new CountdownPanel(new DosageRecordDao(), 1);
-        countdownPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        listContainer.add(countdownPanel);
-
-        for (CalendarPanel.MedicationInfo med : meds) {
-            addMedicationCard(med.getName(), med.getTime(), med.getColor());
-        }
-
-        revalidate();
-        repaint();
     }
 
     public void setCalendarPanel(CalendarPanel panel) {
@@ -153,6 +115,16 @@ public class MedicationListPanel extends JPanel {
     }
 
     public void setSelectedDay(int day) {
-        this.selectedDay = day;
+        if (titleLabel != null) {
+            LocalDate dateToDisplay = LocalDate.now();
+            if (calendarPanel != null && calendarPanel.getController() != null && calendarPanel.getController().getCurrentYearMonth() != null) {
+                try {
+                    dateToDisplay = calendarPanel.getController().getCurrentYearMonth().atDay(day);
+                } catch (Exception e) { /* 유효하지 않은 날짜 예외 처리 */ }
+                titleLabel.setText(dateToDisplay.getMonthValue() + "월 " + day + "일 복용 약물");
+            } else {
+                titleLabel.setText(day + "일 (정보 부족)");
+            }
+        }
     }
 }

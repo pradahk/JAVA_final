@@ -4,7 +4,15 @@ import javax.swing.*;
 import java.awt.*;
 
 public class LifestylePanel extends JPanel {
-    public LifestylePanel() {
+    private final int userId;
+    private final JPanel mainPanel;
+    private final CardLayout cardLayout;
+
+    public LifestylePanel(int userId, JPanel mainPanel, CardLayout cardLayout) {
+        this.userId = userId;
+        this.mainPanel = mainPanel;
+        this.cardLayout = cardLayout;
+
         setBackground(new Color(250, 250, 250));
         setLayout(new BorderLayout());
 
@@ -51,15 +59,11 @@ public class LifestylePanel extends JPanel {
         addButton.setFocusPainted(false);
         addButton.setAlignmentX(Component.CENTER_ALIGNMENT);
         addButton.addActionListener(e -> {
-            Container parent = getParent();
-            if (parent instanceof JPanel) {
-                CardLayout cl = (CardLayout) parent.getLayout();
-                UserPatternInputPanel inputPanel = new UserPatternInputPanel();
-                inputPanel.setOnSaveCallback(() -> cl.show(parent, "LIFESTYLE"));
-                parent.add(inputPanel, "INPUT");
-                cl.show(parent, "INPUT");
-            }
+            UserPatternInputPanel inputPanel = new UserPatternInputPanel(userId, mainPanel, cardLayout);
+            mainPanel.add(inputPanel, "INPUT");
+            cardLayout.show(mainPanel, "INPUT");
         });
+
 
         content.add(addButton);
         add(content, BorderLayout.CENTER);

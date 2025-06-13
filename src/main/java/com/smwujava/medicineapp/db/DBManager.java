@@ -7,7 +7,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -19,11 +18,10 @@ public class DBManager {
 
     static {
         final String CONFIG_FILE = "config.properties";
-
         try (InputStream input = DBManager.class.getClassLoader().getResourceAsStream(CONFIG_FILE)) {
             Properties prop = new Properties();
             if (input == null) {
-                System.err.println("Sorry, unable to find " + CONFIG_FILE + ". Using default database settings.");
+                System.err.println("Unable to find " + CONFIG_FILE + ". Using default: pharm_reminder.db");
                 DB_URL = "jdbc:sqlite:./pharm_reminder.db";
                 ADMIN_USERNAME = "admin";
                 ADMIN_PASSWORD = "admin_password";
@@ -34,8 +32,7 @@ public class DBManager {
                 ADMIN_PASSWORD = prop.getProperty("admin.password", "admin_password");
             }
         } catch (IOException ex) {
-            System.err.println("Error loading configuration: " + ex.getMessage() + ". Using default database settings.");
-            ex.printStackTrace();
+            System.err.println("Error loading configuration: " + ex.getMessage() + ". Using defaults.");
             DB_URL = "jdbc:sqlite:./pharm_reminder.db";
             ADMIN_USERNAME = "admin";
             ADMIN_PASSWORD = "admin_password";
@@ -88,37 +85,20 @@ public class DBManager {
                     "   UNIQUE (user_id, med_id, scheduled_time)" +
                     ");";
 
-    private DBManager() {
-    }
+    private DBManager() {}
 
     public static Connection getConnection() throws SQLException {
-        Connection con = null;
-        try {
-            con = DriverManager.getConnection(DB_URL);
-            try (Statement stmt = con.createStatement()) {
-                stmt.execute("PRAGMA foreign_keys = ON;");
-            }
-        } catch (SQLException e) {
-            System.err.println("Database Connection Error: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+        Connection con = DriverManager.getConnection(DB_URL);
+        try (Statement stmt = con.createStatement()) {
+            stmt.execute("PRAGMA foreign_keys = ON;");
         }
         return con;
     }
 
-    /**
-     * 데이터베이스 스키마가 존재하지 않으면(Users 테이블 기준) 스키마를 생성하고,
-     * 관리자 계정이 없으면 생성합니다.
-     * 애플리케이션 시작 시 한 번 호출하여 DB 파일 및 테이블을 초기화합니다.
-     * 또한, 기존 테이블의 컬럼 변경이 필요한 경우 마이그레이션 로직을 수행합니다.
-     */
     public static void initializeDatabase() {
-        System.out.println("Initializing database...");
-
         try (Connection conn = getConnection()) {
             if (conn != null) {
                 if (!tableExists(conn, "Users")) {
-                    System.out.println("Database schema not found. Creating schema...");
                     try (Statement stmt = conn.createStatement()) {
                         String[] statements = CREATE_SCHEMA_SQL.split(";");
                         for (String sql : statements) {
@@ -127,112 +107,59 @@ public class DBManager {
                                 stmt.executeUpdate(sql + ";");
                             }
                         }
-                        System.out.println("Database schema created successfully.");
                     } catch (SQLException e) {
-                        System.err.println("Error creating database schema: " + e.getMessage());
-                        e.printStackTrace();
+                        System.err.println("Error creating schema: " + e.getMessage());
                     }
                 } else {
-                    System.out.println("Database schema already exists.");
+                    // Column alteration checks
                     if (!columnExists(conn, "Users", "is_admin")) {
-                        System.out.println("Adding 'is_admin' column to Users table...");
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate("ALTER TABLE Users ADD COLUMN is_admin INTEGER DEFAULT 0;");
-                            System.out.println("'is_admin' column added to Users table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'is_admin' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        try (Statement stmt = conn.createStatement()) { stmt.executeUpdate("ALTER TABLE Users ADD COLUMN is_admin INTEGER DEFAULT 0;"); }
+                        catch (SQLException e) { System.err.println("Error adding 'is_admin': " + e.getMessage());}
                     }
                     if (!columnExists(conn, "DosageRecords", "rescheduled_time")) {
-                        System.out.println("Adding 'rescheduled_time' column to DosageRecords table...");
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN rescheduled_time TEXT;");
-                            System.out.println("'rescheduled_time' column added to DosageRecords table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'rescheduled_time' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        try (Statement stmt = conn.createStatement()) { stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN rescheduled_time TEXT;"); }
+                        catch (SQLException e) { System.err.println("Error adding 'rescheduled_time': " + e.getMessage());}
                     }
                     if (!columnExists(conn, "DosageRecords", "is_skipped")) {
-                        System.out.println("Adding 'is_skipped' column to DosageRecords table...");
-                        try (Statement stmt = conn.createStatement()) {
-                            stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN is_skipped INTEGER DEFAULT 0;");
-                            System.out.println("'is_skipped' column added to DosageRecords table.");
-                        } catch (SQLException e) {
-                            System.err.println("Error adding 'is_skipped' column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
+                        try (Statement stmt = conn.createStatement()) { stmt.executeUpdate("ALTER TABLE DosageRecords ADD COLUMN is_skipped INTEGER DEFAULT 0;"); }
+                        catch (SQLException e) { System.err.println("Error adding 'is_skipped': " + e.getMessage());}
                     }
-
-                    // UserPatterns 테이블의 새 컬럼들 추가 로직 (Migration)
-                    // 기존 컬럼 (breakfast, lunch, dinner, sleep)이 있다면 삭제하고 새로운 컬럼을 추가하는 것이 일반적이지만,
-                    // 데이터 손실을 방지하기 위해 여기서는 간단히 새로운 컬럼만 추가합니다.
-                    // 실제 운영 환경에서는 데이터 마이그레이션 전략을 신중히 고려해야 합니다.
                     if (tableExists(conn, "UserPatterns")) {
                         if (!columnExists(conn, "UserPatterns", "breakfast_start")) {
-                            System.out.println("Adding 'breakfast_start' and 'breakfast_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
-                                // 기존 컬럼들을 먼저 삭제하거나 (데이터 손실 주의)
-                                // ALTER TABLE UserPatterns DROP COLUMN breakfast; (SQLite는 DROP COLUMN 지원하지 않음, 테이블 재생성 필요)
-                                // 대신 새로운 컬럼만 추가하고, 기존 데이터를 새 컬럼으로 옮기는 로직이 필요할 수 있습니다.
-                                // 이 예시에서는 단순히 새 컬럼만 추가합니다.
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN breakfast_end TEXT;");
-                                System.out.println("'breakfast_start' and 'breakfast_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding breakfast columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding breakfast_start/end: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "lunch_start")) {
-                            System.out.println("Adding 'lunch_start' and 'lunch_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN lunch_end TEXT;");
-                                System.out.println("'lunch_start' and 'lunch_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding lunch columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding lunch_start/end: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "dinner_start")) {
-                            System.out.println("Adding 'dinner_start' and 'dinner_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN dinner_end TEXT;");
-                                System.out.println("'dinner_start' and 'dinner_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding dinner columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding dinner_start/end: " + e.getMessage());}
                         }
                         if (!columnExists(conn, "UserPatterns", "sleep_start")) {
-                            System.out.println("Adding 'sleep_start' and 'sleep_end' columns to UserPatterns table...");
                             try (Statement stmt = conn.createStatement()) {
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_start TEXT;");
                                 stmt.executeUpdate("ALTER TABLE UserPatterns ADD COLUMN sleep_end TEXT;");
-                                System.out.println("'sleep_start' and 'sleep_end' columns added.");
-                            } catch (SQLException e) {
-                                System.err.println("Error adding sleep columns: " + e.getMessage());
-                                e.printStackTrace();
-                            }
+                            } catch (SQLException e) {System.err.println("Error adding sleep_start/end: " + e.getMessage());}
                         }
                     }
                 }
 
-                // 관리자 계정 생성 로직
                 if (tableExists(conn, "Users")) {
                     if (!adminAccountExists(conn)) {
                         insertAdminAccount(conn);
-                    } else {
-                        System.out.println("Admin account already exists.");
                     }
                 }
             }
         } catch (SQLException e) {
-            System.err.println("Error during database initialization connection or admin account setup: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error during DB init: " + e.getMessage());
         }
     }
 
@@ -271,8 +198,10 @@ public class DBManager {
             pstmt.setInt(3, 0);
             pstmt.setInt(4, 1);
             pstmt.executeUpdate();
-            System.out.println("Admin account created successfully: " + ADMIN_USERNAME);
         }
+    }
+
+    private static void insertSampleMedicineDataIfNeeded(Connection conn, int userId) throws SQLException {
     }
 
     public static void closeConnection(Connection conn) {
@@ -280,8 +209,7 @@ public class DBManager {
             try {
                 conn.close();
             } catch (SQLException e) {
-                System.err.println("Error closing database connection: " + e.getMessage());
-                e.printStackTrace();
+                System.err.println("Error closing DB connection: " + e.getMessage());
             }
         }
     }

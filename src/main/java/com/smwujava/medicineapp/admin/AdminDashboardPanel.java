@@ -1,9 +1,18 @@
 package com.smwujava.medicineapp.admin;
 
+import com.smwujava.medicineapp.controller.UserSummary;
+import com.smwujava.medicineapp.dao.DosageRecordDao;
+import com.smwujava.medicineapp.dao.MedicineDao;
+import com.smwujava.medicineapp.dao.UserDao;
+import com.smwujava.medicineapp.model.DosageRecord;
+import com.smwujava.medicineapp.model.User;
+
 import javax.swing.*;
 import java.awt.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import com.smwujava.medicineapp.admin.AverageChartPanel;
 
 public class AdminDashboardPanel extends JPanel {
 
@@ -17,11 +26,36 @@ public class AdminDashboardPanel extends JPanel {
         topPanel.setBackground(Color.LIGHT_GRAY);
         topPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
 
-        JPanel userInfoPanel = new UserListPanel();
-        JPanel versionPanel = new VersionPanel();  // 분리된 버전 패널 사용
+        UserListPanel userInfoPanel = new UserListPanel(); // JPanel → 실제 타입으로 변경
+        VersionPanel versionPanel = new VersionPanel();
 
         topPanel.add(userInfoPanel);
         topPanel.add(versionPanel);
+
+        // 사용자 요약 데이터 주입
+        try {
+            List<UserSummary> summaries = new ArrayList<>();
+            List<User> users = UserDao.getAllNormalUsers();
+            DosageRecordDao recordDao = new DosageRecordDao();
+            MedicineDao medicineDao = new MedicineDao();
+            LocalDate end = LocalDate.now();
+            LocalDate start = end.minusDays(6);
+
+            for (User user : users) {
+                int uid = user.getUserId();
+                int medCount = medicineDao.getMedicineCountByUserId(uid);
+                List<DosageRecord> records = recordDao.findRecordsByUserIdAndDateRange(uid, start.toString(), end.toString());
+                int total = records.size();
+                int success = (int) records.stream().filter(DosageRecord::isTaken).count();
+                double rate = total == 0 ? 0.0 : (success * 100.0 / total);
+                summaries.add(new UserSummary(String.valueOf(uid), medCount, rate));
+            }
+
+            userInfoPanel.updateTable(summaries);
+        } catch (Exception e) {
+            e.printStackTrace();
+            userInfoPanel.add(new JLabel("사용자 요약 정보 불러오기 실패"), BorderLayout.SOUTH);
+        }
 
         // 하단 영역
         JPanel bottomPanel = new JPanel(new BorderLayout());
@@ -32,7 +66,6 @@ public class AdminDashboardPanel extends JPanel {
         chartPanel.setLayout(new BoxLayout(chartPanel, BoxLayout.Y_AXIS));
         chartPanel.setPreferredSize(new Dimension(1000, 400));
         chartPanel.setBackground(Color.WHITE);
-        //chartPanel.setBorder(BorderFactory.createTitledBorder("시간대별 복용 성공률 차트"));
 
         // 차트 생성 및 추가
         AverageChartPanel avgChart = new AverageChartPanel();
@@ -54,11 +87,25 @@ public class AdminDashboardPanel extends JPanel {
         // 설명 패널 추가
         ChartDescriptionPanel descPanel = new ChartDescriptionPanel(bestTimeSlot, overallAvg);
         chartPanel.add(descPanel);
-
         bottomPanel.add(chartPanel, BorderLayout.CENTER);
 
         // 전체 구성
         add(topPanel, BorderLayout.NORTH);
         add(bottomPanel, BorderLayout.CENTER);
+
+        //복용 기록 보기 버튼 추가
+        JButton showRecordButton = new JButton("복용 기록 보기");
+        showRecordButton.setFont(new Font("맑은 고딕", Font.PLAIN, 13));
+        showRecordButton.addActionListener(e -> {
+            DosageRecordDao dao = new DosageRecordDao();
+            DosageRecordDialog dialog = new DosageRecordDialog((JFrame) SwingUtilities.getWindowAncestor(this), dao);
+            dialog.setVisible(true);
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.add(showRecordButton);
+        add(buttonPanel, BorderLayout.SOUTH);
+
     }
 }

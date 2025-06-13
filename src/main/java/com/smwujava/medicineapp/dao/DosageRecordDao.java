@@ -2,19 +2,19 @@ package com.smwujava.medicineapp.dao;
 
 import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.model.DosageRecord;
+import com.smwujava.medicineapp.util.DBUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.sql.Timestamp;
-
+import java.util.Map; // 통계를 위해 추가
+import java.util.HashMap; // 통계를 위해 추가
 
 /**
  * 복용 기록(DosageRecords 테이블) 데이터 접근 객체 (DAO)
@@ -47,41 +47,6 @@ public class DosageRecordDao {
         return (dateTimeString != null && !dateTimeString.isEmpty()) ? LocalDateTime.parse(dateTimeString, DATETIME_FORMATTER) : null;
     }
 
-    // 06.01 정모아 수정
-    public List<DosageRecord> findScheduledAlarmsWithin(LocalDateTime start, LocalDateTime end) throws SQLException {
-        List<DosageRecord> alarms = new ArrayList<>();
-
-        String sql = "SELECT * FROM DosageRecords " +
-                "WHERE scheduled_time BETWEEN ? AND ? " +
-                "AND actual_taken_time IS NULL AND is_skipped = 0";
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setTimestamp(1, Timestamp.valueOf(start));
-            pstmt.setTimestamp(2, Timestamp.valueOf(end));
-
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    DosageRecord record = new DosageRecord(
-                            rs.getInt("record_id"),
-                            rs.getInt("user_id"),
-                            rs.getInt("med_id"),
-                            convertStringToLocalDateTime(rs.getString("scheduled_time")),
-                            convertStringToLocalDateTime(rs.getString("actual_taken_time")),
-                            convertStringToLocalDateTime(rs.getString("rescheduled_time")),
-                            rs.getBoolean("is_skipped")
-                    );
-                    alarms.add(record);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error while fetching scheduled alarms: " + e.getMessage());
-            throw e;
-        }
-
-        return alarms;
-    }
     /**
      * 새로운 복용 기록을 데이터베이스의 DosageRecords 테이블에 삽입합니다.
      * recordId는 DB에서 자동 생성됩니다.
@@ -145,6 +110,7 @@ public class DosageRecordDao {
                             convertStringToLocalDateTime(rs.getString("actual_taken_time")),
                             convertStringToLocalDateTime(rs.getString("rescheduled_time")), // rescheduled_time 추가
                             rs.getBoolean("is_skipped") // is_skipped 추가
+
                     );
                 }
             }
@@ -153,6 +119,56 @@ public class DosageRecordDao {
             throw e;
         }
         return record;
+    }
+
+    /**
+     * 주어진 사용자 ID에 대해 오늘 복용 예정인 약 복용 기록을 모두 조회합니다.
+     *
+     * 이 메서드는 dosage_records 테이블에서 scheduled_time이 오늘 날짜인
+     * 모든 레코드를 조회하여 리스트로 반환합니다.
+     * 알람 예약 등에 활용할 수 있습니다.
+     *
+     * @param user_id 조회할 사용자의 ID
+     * @return 오늘 복용 예정인 DosageRecord 객체들의 리스트 (없으면 빈 리스트)
+     * @throws SQLException 데이터베이스 접근 또는 SQL 실행 중 오류 발생 시
+     */
+    public List<DosageRecord> getTodaySchedules(int user_id) throws SQLException {
+        List<DosageRecord> records = new ArrayList<>();
+
+        String sql =  "SELECT user_id, med_id, scheduled_time, actual_taken_time, is_taken FROM dosage_records " +
+                "WHERE DATE(scheduled_time) = DATE('now')";
+
+        try (Connection conn = DBUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                int recordId = rs.getInt("record_id");
+                int userId = rs.getInt("user_id");
+                int medId = rs.getInt("med_id");
+                LocalDateTime scheduledTime = convertStringToLocalDateTime(rs.getString("scheduled_time"));
+                LocalDateTime actualTakenTime = convertStringToLocalDateTime(rs.getString("actual_taken_time"));
+                LocalDateTime rescheduledTime = convertStringToLocalDateTime(rs.getString("rescheduled_time"));
+                boolean isSkipped = rs.getBoolean("is_skipped");
+                boolean isTaken = rs.getBoolean("is_taken");
+
+                // ⚠ DosageRecord 생성자에 userId 포함 필요
+                DosageRecord record = new DosageRecord(    recordId,           // ⚠ 이 값은 SQL 결과에서 가져와야 함
+                        userId,
+                        medId,
+                        scheduledTime,
+                        actualTakenTime,
+                        null,    // ⚠ 필요하다면 null 또는 값으로 대체
+                        false    // ⚠ 필요하다면 false로 기본 설정
+                );
+
+                records.add(record);
+            }
+        }  catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return records;
     }
 
     /**
@@ -183,6 +199,7 @@ public class DosageRecordDao {
                             convertStringToLocalDateTime(rs.getString("actual_taken_time")),
                             convertStringToLocalDateTime(rs.getString("rescheduled_time")), // rescheduled_time 추가
                             rs.getBoolean("is_skipped") // is_skipped 추가
+
                     ));
                 }
             }
@@ -523,36 +540,6 @@ public class DosageRecordDao {
         return records;
     }
 
-    //DosageRecordDao.getTodaySchedules() 구현 (06.01 정모아 수정)
-    public List<DosageRecord> getTodaySchedules() {
-        List<DosageRecord> records = new ArrayList<>();
-        String sql = "SELECT * FROM DosageRecords " +
-                "WHERE DATE(scheduled_time) = DATE('now', 'localtime') " +
-                "AND actual_taken_time IS NULL";
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-
-            while (rs.next()) {
-                DosageRecord record = new DosageRecord(
-                        rs.getInt("user_id"),
-                        rs.getInt("medicine_id"),
-                        rs.getTimestamp("scheduled_time").toLocalDateTime()
-                );
-                record.setId(rs.getInt("id"));
-                // 필요한 경우 추가 필드도 설정 가능
-                records.add(record);
-            }
-
-        } catch (Exception e) {
-            System.err.println("오늘의 복용 스케줄 조회 중 오류 발생: " + e.getMessage());
-        }
-
-        return records;
-    }
-
-
 
     /**
      * 현재 시각 기준으로, 아직 복용하지 않았고 건너뛰지 않은 복용 기록 중
@@ -590,5 +577,36 @@ public class DosageRecordDao {
             throw e;
         }
         return null;
+    }
+
+    /**
+     * 데이터베이스의 모든 복용 기록을 조회하여 리스트로 반환합니다.
+     * 이 메서드는 관리자 페이지 등에서 전체 복용 기록을 확인할 때 사용될 수 있습니다.
+     * @return 모든 DosageRecord 객체의 리스트. 조회 중 오류 발생 시 빈 리스트를 반환합니다.
+     */
+    public List<DosageRecord> findAll() throws SQLException {
+        List<DosageRecord> records = new ArrayList<>();
+        String sql = "SELECT * FROM DosageRecords ORDER BY scheduled_time DESC"; // 최신 기록부터 정렬
+
+        try (Connection conn = DBManager.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql); // Statement 대신 PreparedStatement를 사용
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                records.add(new DosageRecord(
+                        rs.getInt("record_id"),
+                        rs.getInt("user_id"),
+                        rs.getInt("med_id"),
+                        convertStringToLocalDateTime(rs.getString("scheduled_time")),
+                        convertStringToLocalDateTime(rs.getString("actual_taken_time")),
+                        convertStringToLocalDateTime(rs.getString("rescheduled_time")),
+                        rs.getBoolean("is_skipped")
+                ));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error while fetching all dosage records: " + e.getMessage());
+            throw e; // 호출하는 쪽에서 예외를 처리하도록 던집니다.
+        }
+        return records;
     }
 }
