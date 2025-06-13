@@ -4,8 +4,6 @@ import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.service.AlarmManager;
 import com.smwujava.medicineapp.service.AlarmResponseHandler;
 import com.smwujava.medicineapp.ui.panels.CalendarPanel;
-
-
 import javax.swing.*;
 import java.awt.*;
 import java.time.LocalDateTime;

@@ -23,7 +23,3 @@ public class RegisterWindow extends JFrame {
         SwingUtilities.invokeLater(RegisterWindow::new);
     }
 }
-
-
-
-
