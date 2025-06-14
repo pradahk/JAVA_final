@@ -1,3 +1,4 @@
+/*
 package com.smwujava.medicineapp.window;
 
 import com.smwujava.medicineapp.ui.panels.MedicationSettingsPanel;
@@ -39,3 +40,4 @@ public class MedicineWindow extends JFrame {
         });
     }
 }
+*/
