@@ -38,7 +38,9 @@ public class CalendarWindow {
 
             CalendarPanel calendarPage = new CalendarPanel(appCardLayout, mainContentPanel);
             LifestylePanel lifestylePage = new LifestylePanel(currentUserId, mainContentPanel, appCardLayout);
-            MedicationSettingsPanel settingsPage = new MedicationSettingsPanel(currentUserId, appCardLayout, mainContentPanel);
+
+            Runnable refreshCalendarAction = () -> calendarPage.refresh();
+            MedicationSettingsPanel settingsPage = new MedicationSettingsPanel(currentUserId, appCardLayout, mainContentPanel, refreshCalendarAction);
 
             mainContentPanel.add(calendarPage, "CALENDAR");
             mainContentPanel.add(lifestylePage, "LIFESTYLE");

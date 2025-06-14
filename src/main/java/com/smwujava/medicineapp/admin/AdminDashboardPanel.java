@@ -26,36 +26,11 @@ public class AdminDashboardPanel extends JPanel {
         topPanel.setBackground(Color.LIGHT_GRAY);
         topPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
 
-        UserListPanel userInfoPanel = new UserListPanel(); // JPanel → 실제 타입으로 변경
+        UserSummaryPanel userInfoPanel = new UserSummaryPanel(); // JPanel → 실제 타입으로 변경
         VersionPanel versionPanel = new VersionPanel();
 
         topPanel.add(userInfoPanel);
         topPanel.add(versionPanel);
-
-        // 사용자 요약 데이터 주입
-        try {
-            List<UserSummary> summaries = new ArrayList<>();
-            List<User> users = UserDao.getAllNormalUsers();
-            DosageRecordDao recordDao = new DosageRecordDao();
-            MedicineDao medicineDao = new MedicineDao();
-            LocalDate end = LocalDate.now();
-            LocalDate start = end.minusDays(6);
-
-            for (User user : users) {
-                int uid = user.getUserId();
-                int medCount = medicineDao.getMedicineCountByUserId(uid);
-                List<DosageRecord> records = recordDao.findRecordsByUserIdAndDateRange(uid, start.toString(), end.toString());
-                int total = records.size();
-                int success = (int) records.stream().filter(DosageRecord::isTaken).count();
-                double rate = total == 0 ? 0.0 : (success * 100.0 / total);
-                summaries.add(new UserSummary(String.valueOf(uid), medCount, rate));
-            }
-
-            userInfoPanel.updateTable(summaries);
-        } catch (Exception e) {
-            e.printStackTrace();
-            userInfoPanel.add(new JLabel("사용자 요약 정보 불러오기 실패"), BorderLayout.SOUTH);
-        }
 
         // 하단 영역
         JPanel bottomPanel = new JPanel(new BorderLayout());
@@ -106,6 +81,5 @@ public class AdminDashboardPanel extends JPanel {
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(showRecordButton);
         add(buttonPanel, BorderLayout.SOUTH);
-
     }
 }

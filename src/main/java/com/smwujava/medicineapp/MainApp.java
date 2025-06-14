@@ -1,12 +1,12 @@
 package com.smwujava.medicineapp;
 
+import com.smwujava.medicineapp.admin.AdminDashboardPanel;
 import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.model.User;
 import com.smwujava.medicineapp.music.BGMPlayer;
+import com.smwujava.medicineapp.Scheduler.AlarmScheduler;
 import com.smwujava.medicineapp.service.UserService;
 import com.smwujava.medicineapp.ui.panels.*;
-import com.smwujava.medicineapp.admin.AdminDashboardPanel;
-import com.smwujava.medicineapp.Scheduler.AlarmScheduler;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.dao.UserPatternDao;
@@ -82,7 +82,9 @@ public class MainApp {
 
         CalendarPanel calendarPage = new CalendarPanel(pageCardLayout, pageContainer);
         LifestylePanel lifestylePage = new LifestylePanel(userId, pageContainer, pageCardLayout);
-        MedicationSettingsPanel settingsPage = new MedicationSettingsPanel(userId, pageCardLayout, pageContainer);
+
+        Runnable refreshCalendarAction = () -> calendarPage.refresh();
+        MedicationSettingsPanel settingsPage = new MedicationSettingsPanel(userId, pageCardLayout, pageContainer, refreshCalendarAction);
 
         pageContainer.add(calendarPage, "CALENDAR");
         pageContainer.add(lifestylePage, "LIFESTYLE");
@@ -95,6 +97,16 @@ public class MainApp {
         mainViewPanel.add(bottomNav, BorderLayout.SOUTH);
 
         mainContainerPanel.add(mainViewPanel, "MAIN_VIEW");
+
+        // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
+        AlarmScheduler scheduler = new AlarmScheduler(
+                mainFrame,
+                userId,
+                new DosageRecordDao(),
+                new UserPatternDao(),
+                new MedicineDao()
+        );
+        scheduler.start();
     }
 
     private void setupAdminView() {
@@ -103,6 +115,7 @@ public class MainApp {
     }
 
     private void startBGM() {
+        // resources/music 폴더의 background_music.wav 파일을 재생
         bgmPlayer = new BGMPlayer("/music/background_music.wav");
         bgmPlayer.start();
     }
