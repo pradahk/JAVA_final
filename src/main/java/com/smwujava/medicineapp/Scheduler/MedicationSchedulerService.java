@@ -1,95 +1,58 @@
 package com.smwujava.medicineapp.Scheduler;
 
-import com.smwujava.medicineapp.dao.DosageRecordDao;
-import com.smwujava.medicineapp.dao.MedicineDao;
-import com.smwujava.medicineapp.dao.UserPatternDao;
-import com.smwujava.medicineapp.model.DosageRecord;
-import com.smwujava.medicineapp.model.Medicine;
-import com.smwujava.medicineapp.model.UserPattern;
-import com.smwujava.medicineapp.service.AlarmManager;
-
+import com.smwujava.medicineapp.dao.*;
+import com.smwujava.medicineapp.model.*;
+import com.smwujava.medicineapp.service.*;
 import javax.swing.JFrame;
 import java.sql.SQLException;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
+import java.util.*;
 
 public class MedicationSchedulerService {
-
     private final MedicineDao medicineDao;
     private final UserPatternDao userPatternDao;
     private final DosageRecordDao dosageRecordDao;
     private final AlarmManager alarmManager;
 
-    public MedicationSchedulerService(MedicineDao medicineDao, UserPatternDao userPatternDao, DosageRecordDao dosageRecordDao, AlarmManager alarmManager) {
-        this.medicineDao = medicineDao;
-        this.userPatternDao = userPatternDao;
-        this.dosageRecordDao = dosageRecordDao;
-        this.alarmManager = alarmManager;
+    public MedicationSchedulerService(MedicineDao mDao, UserPatternDao pDao, DosageRecordDao dDao, AlarmManager aManager) {
+        this.medicineDao = mDao;
+        this.userPatternDao = pDao;
+        this.dosageRecordDao = dDao;
+        this.alarmManager = aManager;
     }
 
-    public void createAndScheduleTodayAlarms(int userId, JFrame parentFrame) {
+    public void createAndScheduleTodayAlarms(JFrame parentFrame, AlarmResponseHandler handler) {
         UserPattern pattern;
         List<Medicine> medicines;
-
         try {
-            pattern = userPatternDao.findPatternByUserId(userId);
-            if (pattern == null) {
-                System.err.println("스케줄링 실패: 사용자 생활 패턴이 설정되지 않았습니다. (userId: " + userId + ")");
-                return;
-            }
-            medicines = medicineDao.findMedicinesByUserId(userId);
-            if (medicines.isEmpty()) {
-                return;
-            }
-        } catch (SQLException e) {
-            System.err.println("오류: 스케줄링을 위한 데이터 로딩 중 DB 오류 발생. " + e.getMessage());
-            return;
-        }
+            pattern = userPatternDao.findPatternByUserId(1); // 예시 userId
+            medicines = medicineDao.findMedicinesByUserId(1); // 예시 userId
+            if (pattern == null || medicines.isEmpty()) return;
+        } catch (SQLException e) { return; }
 
         for (Medicine med : medicines) {
-            if (!shouldTakeToday(med.getMedDays())) {
-                continue;
-            }
-
+            if (!shouldTakeToday(med.getMedDays())) continue;
             List<LocalTime> baseTimes = getBaseTimes(pattern, med);
-
             for (int i = 0; i < med.getMedDailyAmount() && i < baseTimes.size(); i++) {
-                LocalTime baseTime = baseTimes.get(i);
-                LocalTime scheduledTime = calculateFinalTime(baseTime, med.getMedTiming(), med.getMedMinutes());
-                LocalDateTime scheduledDateTime = LocalDateTime.of(LocalDate.now(), scheduledTime);
-                createRecordAndScheduleAlarm(userId, med.getMedId(), scheduledDateTime, parentFrame);
+                LocalTime scheduledTime = calculateFinalTime(baseTimes.get(i), med.getMedTiming(), med.getMedMinutes());
+                createRecordAndScheduleAlarm(1, med.getMedId(), LocalDateTime.of(LocalDate.now(), scheduledTime), parentFrame, handler);
             }
         }
     }
 
-    private void createRecordAndScheduleAlarm(int userId, int medId, LocalDateTime scheduledDateTime, JFrame parentFrame) {
+    private void createRecordAndScheduleAlarm(int userId, int medId, LocalDateTime scheduledDateTime, JFrame parentFrame, AlarmResponseHandler handler) {
         try {
             DosageRecord record = new DosageRecord();
             record.setUserId(userId);
             record.setMedId(medId);
             record.setScheduledTime(scheduledDateTime);
-            record.setSkipped(false);
-
             int generatedRecordId = dosageRecordDao.insertDosageRecord(record);
             if (generatedRecordId != -1) {
                 record.setRecordId(generatedRecordId);
-                System.out.println("알람 기록 생성: recordId=" + record.getRecordId());
-                this.alarmManager.scheduleAlarm(parentFrame, record);
+                this.alarmManager.scheduleAlarm(parentFrame, record, handler);
             }
-        } catch (SQLException e) {
-            if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
-                // 중복 기록은 조용히 넘어감
-            } else {
-                System.err.println("오류: 복용 기록 삽입 또는 알람 예약 중 DB 오류 발생. " + e.getMessage());
-            }
-        }
+        } catch (SQLException e) { /* ... */ }
     }
 
     private List<LocalTime> getBaseTimes(UserPattern pattern, Medicine med) {
