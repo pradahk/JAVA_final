@@ -36,7 +36,7 @@ public class CalendarWindow {
 
             final int currentUserId = 1;
 
-            CalendarPanel calendarPage = new CalendarPanel(appCardLayout, mainContentPanel);
+            CalendarPanel calendarPage = new CalendarPanel(appCardLayout, mainContentPanel, currentUserId);
             LifestylePanel lifestylePage = new LifestylePanel(currentUserId, mainContentPanel, appCardLayout);
 
             Runnable refreshCalendarAction = () -> calendarPage.refresh();

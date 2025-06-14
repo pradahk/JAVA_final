@@ -1,4 +1,4 @@
-package com.smwujava.medicineapp.calendar; // 또는 com.smwujava.medicineapp.ui.components;
+package com.smwujava.medicineapp.calendar;
 
 import com.smwujava.medicineapp.ui.panels.CalendarPanel; // MedicationInfo DTO 사용
 import javax.swing.*;

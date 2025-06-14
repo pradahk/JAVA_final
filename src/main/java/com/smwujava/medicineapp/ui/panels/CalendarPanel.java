@@ -34,8 +34,8 @@ public class CalendarPanel extends JPanel {
     private CalendarDayPanel currentlyHighlightedDayPanel = null;
     private int currentSelectedDayForList = -1;
 
-    public CalendarPanel(CardLayout cardLayout, JPanel parentPanel) {
-        this.controller = new CalendarController();
+    public CalendarPanel(CardLayout cardLayout, JPanel parentPanel, int userId) {
+        this.controller = new CalendarController(userId);
         this.controller.setCalendarPanel(this);
 
         setLayout(new GridBagLayout());
@@ -74,7 +74,6 @@ public class CalendarPanel extends JPanel {
 
         gbc.gridx = 1;
         gbc.weightx = 0.3;
-        // MedicationListPanel 생성 시 Controller로부터 userId를 받아 전달
         medicationListPanel = new MedicationListPanel(cardLayout, parentPanel, this.controller.getCurrentUserId());
         medicationListPanel.setCalendarPanel(this);
         add(medicationListPanel, gbc);
