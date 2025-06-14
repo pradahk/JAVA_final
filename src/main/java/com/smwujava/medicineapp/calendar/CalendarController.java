@@ -33,6 +33,7 @@ public class CalendarController {
     private YearMonth currentYearMonth;
     private final int currentUserId = 1;
     private final Color NOT_TAKEN_COLOR = Color.LIGHT_GRAY;
+    private int lastSelectedDay = -1;
 
     public CalendarController() {
         this.medicineDao = new MedicineDao();
@@ -54,30 +55,23 @@ public class CalendarController {
     }
 
     public void loadCalendarData() {
-        loadCalendarData(null);
-    }
-
-    public void loadCalendarData(Integer dayToSelectOverride) {
         if (calendarPanel == null) return;
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy년 MMMM", Locale.KOREAN);
         calendarPanel.updateMonthYearLabel(currentYearMonth.format(formatter));
-
         Map<Integer, List<Color>> dayPillColorsMap = preparePillColorMap();
         calendarPanel.displayCalendarGrid(currentYearMonth, dayPillColorsMap);
 
         int dayToSelect;
-        if (dayToSelectOverride != null && dayToSelectOverride > 0) {
-            dayToSelect = dayToSelectOverride;
+        if (lastSelectedDay != -1 && isDayInCurrentMonth(lastSelectedDay)) {
+            dayToSelect = lastSelectedDay;
         } else {
             LocalDate today = LocalDate.now();
             dayToSelect = (today.getYear() == currentYearMonth.getYear() && today.getMonth() == currentYearMonth.getMonth())
                     ? today.getDayOfMonth() : 1;
         }
 
-        if (calendarPanel != null) {
-            calendarPanel.selectDayInUI(dayToSelect);
-            loadMedicationsForDay(currentYearMonth.atDay(dayToSelect));
-        }
+        calendarPanel.selectDayInUI(dayToSelect);
+        loadMedicationsForDay(currentYearMonth.atDay(dayToSelect));
     }
 
     private Map<Integer, List<Color>> preparePillColorMap() {
@@ -130,10 +124,12 @@ public class CalendarController {
 
     public void changeMonth(int amount) {
         currentYearMonth = currentYearMonth.plusMonths(amount);
-        loadCalendarData(null);
+        lastSelectedDay = -1;
+        loadCalendarData();
     }
 
     public void loadMedicationsForDay(LocalDate date) {
+        this.lastSelectedDay = date.getDayOfMonth();
         if (calendarPanel == null) return;
         List<CalendarPanel.MedicationInfo> medicationInfos = new ArrayList<>();
         try {
@@ -185,7 +181,7 @@ public class CalendarController {
                 record.setSkipped(!isTakenNow);
                 dosageRecordDao.updateDosageRecord(record);
             }
-            loadCalendarData(date.getDayOfMonth());
+            loadCalendarData();
         } catch (SQLException e) {
             e.printStackTrace();
             if (calendarPanel != null) calendarPanel.showError("복용 기록 업데이트 중 DB 오류.");
@@ -224,5 +220,9 @@ public class CalendarController {
         if ("전".equals(timing)) baseTime = baseTime.minusMinutes(minutes);
         else if ("후".equals(timing)) baseTime = baseTime.plusMinutes(minutes);
         return LocalDateTime.of(date, baseTime);
+    }
+
+    private boolean isDayInCurrentMonth(int day) {
+        return day > 0 && day <= currentYearMonth.lengthOfMonth();
     }
 }

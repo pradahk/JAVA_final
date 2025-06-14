@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class UserDao {
-    private UserDao() {
+    public UserDao() {
     }
 
     public static int insertUser(User user) throws SQLException {

@@ -18,7 +18,8 @@ public class MedicationSettingsController {
             JComboBox<String> offsetBox,
             JComboBox<String> directionBox,
             JLabel countLabel,
-            Color selectedColor
+            Color selectedColor,
+            Runnable onSaveSuccess
     ) {
         try {
             String name = nameField.getText().trim();
@@ -26,7 +27,6 @@ public class MedicationSettingsController {
                 JOptionPane.showMessageDialog(null, "약 이름을 입력하세요.");
                 return false;
             }
-
 
             if (selectedColor == null) {
                 JOptionPane.showMessageDialog(null, "색상을 선택해주세요.");
@@ -38,20 +38,30 @@ public class MedicationSettingsController {
                     .map(AbstractButton::getText)
                     .collect(Collectors.joining(","));
 
-            String condition = (String) periodBox.getSelectedItem(); // 식사/수면
-            String timing = (String) directionBox.getSelectedItem(); // 전/후
-            String offsetText = (String) offsetBox.getSelectedItem(); // "10분" or "1시간"
+            if (days.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "복용 주기를 하나 이상 선택하세요.");
+                return false;
+            }
+
+            String condition = (String) periodBox.getSelectedItem();
+            String timing = (String) directionBox.getSelectedItem();
+            String offsetText = (String) offsetBox.getSelectedItem();
             int minutes = offsetText.equals("1시간") ? 60 : Integer.parseInt(offsetText.replace("분", ""));
             int dose = Integer.parseInt(countLabel.getText());
-
             String colorHex = String.format("#%06X", selectedColor.getRGB() & 0xFFFFFF);
 
+            MedicineDao medicineDao = new MedicineDao();
             Medicine med = new Medicine(0, userId, name, dose, days, condition, timing, minutes, colorHex);
-            int inserted = MedicineDao.insertMedicine(med);
-            // 실데 데이터 베이스에 잘 저장 되었는지 콘솔 확인
-            System.out.println("💾 저장된 약 정보: " + med);
-            return inserted > 0;
+            int insertedId = medicineDao.insertMedicine(med);
 
+            if (insertedId > 0) {
+                if (onSaveSuccess != null) {
+                    onSaveSuccess.run();
+                }
+                return true;
+            } else {
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             JOptionPane.showMessageDialog(null, "저장 중 오류 발생: " + e.getMessage());

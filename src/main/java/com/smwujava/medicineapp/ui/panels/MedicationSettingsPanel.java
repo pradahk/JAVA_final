@@ -6,10 +6,11 @@ import javax.swing.*;
 import java.awt.*;
 
 public class MedicationSettingsPanel extends JPanel {
-    private final int userId; // ← 로그인된 사용자 ID
-    private CardLayout cardLayout;
-    private JPanel mainPanel;
-    private JPanel colorPanel;
+    private final int userId;
+    private final CardLayout cardLayout;
+    private final JPanel mainPanel;
+    private final Runnable onSaveCallback;
+
     private JTextField nameField;
     private JCheckBox[] dayCheckboxes;
     private JComboBox<String> periodBox;
@@ -17,158 +18,149 @@ public class MedicationSettingsPanel extends JPanel {
     private JComboBox<String> directionBox;
     private JLabel countLabel;
     private Color selectedColor;
+    private JPanel colorPanel;
 
-    public MedicationSettingsPanel(int userId, CardLayout layout, JPanel panel) {
-        this.userId = userId; // 저장
+    public MedicationSettingsPanel(int userId, CardLayout layout, JPanel panel, Runnable onSaveCallback) {
+        this.userId = userId;
         this.cardLayout = layout;
         this.mainPanel = panel;
+        this.onSaveCallback = onSaveCallback;
 
-        setLayout(new GridBagLayout());
+        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(Color.WHITE);
+        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JPanel container = new JPanel();
-        container.setPreferredSize(new Dimension(500, 450));
-        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
-        container.setOpaque(false);
+        JPanel formContainer = new JPanel();
+        formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
+        formContainer.setOpaque(false);
 
-        nameField = new JTextField("");
-        nameField.setMaximumSize(new Dimension(400, 30));
-        nameField.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(Box.createVerticalStrut(20));
-        container.add(nameField);
+        nameField = new JTextField();
+        dayCheckboxes = new JCheckBox[7];
 
-        JLabel daysLabel = new JLabel("복용 주기");
-        daysLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(Box.createVerticalStrut(20));
-        container.add(daysLabel);
+        formContainer.add(createLabelAndField("약 이름", nameField));
 
         JPanel daysPanel = new JPanel(new GridLayout(1, 7, 5, 0));
-        String[] days = {"일", "월", "화", "수", "목", "금", "토"};
-        dayCheckboxes = new JCheckBox[7];
-        for (int i = 0; i < days.length; i++) {
-            JCheckBox cb = new JCheckBox(days[i]);
-            cb.setOpaque(false);
-            dayCheckboxes[i] = cb;
-            daysPanel.add(cb);
-        }
         daysPanel.setOpaque(false);
-        container.add(daysPanel);
+        String[] days = {"일", "월", "화", "수", "목", "금", "토"};
+        for (int i = 0; i < days.length; i++) {
+            dayCheckboxes[i] = new JCheckBox(days[i]);
+            dayCheckboxes[i].setOpaque(false);
+            daysPanel.add(dayCheckboxes[i]);
+        }
+        formContainer.add(createLabelAndComponent("복용 주기", daysPanel));
 
-        container.add(Box.createVerticalStrut(20));
-        JLabel timeLabel = new JLabel("복용 시간대");
-        timeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(timeLabel);
-
-        JPanel timePanel = new JPanel();
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         timePanel.setOpaque(false);
-        periodBox = new JComboBox<>(new String[]{"식사", "수면"});
+        periodBox = new JComboBox<>(new String[]{"아침 식사", "점심 식사", "저녁 식사", "취침"});
         offsetBox = new JComboBox<>(new String[]{"0분", "5분", "10분", "15분", "30분", "1시간"});
-        directionBox = new JComboBox<>(new String[]{"전", "후"});
+        directionBox = new JComboBox<>(new String[]{"전", "후", "정각"});
         timePanel.add(periodBox);
         timePanel.add(offsetBox);
         timePanel.add(directionBox);
-        container.add(timePanel);
+        formContainer.add(createLabelAndComponent("복용 시간대", timePanel));
 
-        container.add(Box.createVerticalStrut(20));
-        JLabel doseLabel = new JLabel("하루 복용량");
-        doseLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(doseLabel);
-
-        JPanel dosePanel = new JPanel();
+        JPanel dosePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         dosePanel.setOpaque(false);
         JButton minus = new JButton("-");
         countLabel = new JLabel("1");
         JButton plus = new JButton("+");
+        minus.addActionListener(e -> { int c = Integer.parseInt(countLabel.getText()); if (c > 1) countLabel.setText(String.valueOf(c - 1)); });
+        plus.addActionListener(e -> countLabel.setText(String.valueOf(Integer.parseInt(countLabel.getText()) + 1)));
         dosePanel.add(minus);
         dosePanel.add(countLabel);
         dosePanel.add(plus);
-        container.add(dosePanel);
+        formContainer.add(createLabelAndComponent("하루 복용량", dosePanel));
 
-        minus.addActionListener(e -> {
-            int current = Integer.parseInt(countLabel.getText());
-            if (current > 1) countLabel.setText(String.valueOf(current - 1));
-        });
-        plus.addActionListener(e -> {
-            int current = Integer.parseInt(countLabel.getText());
-            countLabel.setText(String.valueOf(current + 1));
-        });
-
-        container.add(Box.createVerticalStrut(20));
-        JLabel colorLabel = new JLabel("색상 선택:");
-        colorLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(colorLabel);
-
-        colorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        colorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         colorPanel.setOpaque(false);
-        Color[] colors = {
-                new Color(153, 153, 255),
-                new Color(204, 255, 153),
-                new Color(255, 204, 204),
-                new Color(255, 255, 153),
-                new Color(204, 204, 255),
-                new Color(224, 224, 224)
-        };
-
+        Color[] colors = {new Color(153, 153, 255), new Color(204, 255, 153), new Color(255, 204, 204), new Color(255, 255, 153), new Color(204, 204, 255), new Color(224, 224, 224)};
         for (Color color : colors) {
             JButton colorBtn = new JButton();
             colorBtn.setBackground(color);
             colorBtn.setPreferredSize(new Dimension(30, 30));
             colorBtn.setBorder(BorderFactory.createLineBorder(Color.WHITE));
-
-            colorBtn.addActionListener(e -> {
-                selectedColor = color;
-                for (Component comp : colorPanel.getComponents()) {
-                    if (comp instanceof JButton) {
-                        JButton btn = (JButton) comp;
-                        boolean isSelected = btn == colorBtn;
-                        btn.setBorder(BorderFactory.createLineBorder(
-                                isSelected ? Color.BLACK : Color.WHITE, isSelected ? 2 : 1
-                        ));
-                    }
-                }
-            });
+            colorBtn.addActionListener(e -> selectColor(colorBtn));
             colorPanel.add(colorBtn);
         }
-        container.add(colorPanel);
+        formContainer.add(createLabelAndComponent("색상 선택", colorPanel));
 
-        container.add(Box.createVerticalStrut(30));
         JButton saveButton = new JButton("저장");
-        saveButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        container.add(saveButton);
+        JButton cancelButton = new JButton("취소");
 
-        saveButton.addActionListener(e -> {
-            boolean saved = MedicationSettingsController.saveMedicine(
-                    userId,  // ← 하드코딩 제거됨
-                    nameField,
-                    dayCheckboxes,
-                    periodBox,
-                    offsetBox,
-                    directionBox,
-                    countLabel,
-                    selectedColor
-            );
-            if (saved) {
-                JOptionPane.showMessageDialog(this, "약 정보가 저장되었습니다!");
-                nameField.setText("");
-                for (JCheckBox cb : dayCheckboxes) {
-                    cb.setSelected(false);
-                }
-                periodBox.setSelectedIndex(0);
-                offsetBox.setSelectedIndex(0);
-                directionBox.setSelectedIndex(0);
-                countLabel.setText("1");
-                selectedColor = null;
-                for (Component comp : colorPanel.getComponents()) {
-                    if (comp instanceof JButton) {
-                        ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE));
-                    }
-                }
-                cardLayout.show(mainPanel, "CALENDAR"); // 나중에 연결될 홈 화면
-            } else {
-                JOptionPane.showMessageDialog(this, "저장에 실패했습니다.");
+        saveButton.addActionListener(e -> handleSave());
+        cancelButton.addActionListener(e -> cardLayout.show(mainPanel, "CALENDAR"));
+
+        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonContainer.setOpaque(false);
+        buttonContainer.add(cancelButton);
+        buttonContainer.add(saveButton);
+        formContainer.add(Box.createVerticalStrut(20));
+        formContainer.add(buttonContainer);
+
+        add(new JScrollPane(formContainer));
+    }
+
+    private JPanel createLabelAndField(String labelText, JComponent field) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(field);
+        panel.add(Box.createVerticalStrut(10));
+        return panel;
+    }
+
+    private JPanel createLabelAndComponent(String labelText, JComponent component) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setOpaque(false);
+        JLabel label = new JLabel(labelText);
+        label.setAlignmentX(Component.LEFT_ALIGNMENT);
+        component.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(label);
+        panel.add(Box.createVerticalStrut(5));
+        panel.add(component);
+        panel.add(Box.createVerticalStrut(10));
+        return panel;
+    }
+
+    private void selectColor(JButton selectedBtn) {
+        selectedColor = selectedBtn.getBackground();
+        for (Component comp : colorPanel.getComponents()) {
+            if (comp instanceof JButton) {
+                ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
             }
-        });
+        }
+        selectedBtn.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+    }
 
-        add(container);
+    private void handleSave() {
+        boolean saved = MedicationSettingsController.saveMedicine(
+                userId, nameField, dayCheckboxes, periodBox, offsetBox, directionBox, countLabel, selectedColor, onSaveCallback
+        );
+        if (saved) {
+            JOptionPane.showMessageDialog(this, "약 정보가 저장되었습니다!");
+            clearFields();
+            cardLayout.show(mainPanel, "CALENDAR");
+        }
+    }
+
+    private void clearFields() {
+        nameField.setText("");
+        for (JCheckBox cb : dayCheckboxes) if(cb != null) cb.setSelected(false);
+        if(periodBox != null) periodBox.setSelectedIndex(0);
+        if(offsetBox != null) offsetBox.setSelectedIndex(0);
+        if(directionBox != null) directionBox.setSelectedIndex(0);
+        if(countLabel != null) countLabel.setText("1");
+        selectedColor = null;
+        if(colorPanel != null) {
+            for (Component comp : colorPanel.getComponents()) {
+                if (comp instanceof JButton) ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE));
+            }
+        }
     }
 }
