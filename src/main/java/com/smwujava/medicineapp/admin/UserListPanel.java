@@ -24,9 +24,13 @@ public class UserListPanel extends JPanel {
 
         // 테이블 헤더
         String[] columns = {"사용자 ID", "약 개수", "성공률 (%)"};
-        tableModel = new DefaultTableModel(columns, 0);
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // 셀 수정 비활성화
+            }
+        };
         table = new JTable(tableModel);
-        table.setFillsViewportHeight(true);
 
         // 스크롤 가능한 테이블 패널
         JScrollPane scrollPane = new JScrollPane(table);
