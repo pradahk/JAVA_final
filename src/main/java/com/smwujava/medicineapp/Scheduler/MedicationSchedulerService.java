@@ -135,7 +135,6 @@ public class MedicationSchedulerService {
     public void scheduleTodayAlarms(int userId, JFrame parentFrame) {
         DosageRecordDao recordDao = new DosageRecordDao();
 
-
         try {
             List<DosageRecord> todayRecords = recordDao.findRecordsByUserIdAndDate(
                     userId,
