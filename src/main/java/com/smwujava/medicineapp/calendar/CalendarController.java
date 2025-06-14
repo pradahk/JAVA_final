@@ -31,11 +31,12 @@ public class CalendarController {
     private final UserPatternDao userPatternDao;
     private CalendarPanel calendarPanel;
     private YearMonth currentYearMonth;
-    private final int currentUserId = 1;
-    private final Color NOT_TAKEN_COLOR = Color.LIGHT_GRAY;
+    private final int currentUserId;
     private int lastSelectedDay = -1;
+    private final Color NOT_TAKEN_COLOR = new Color(224, 224, 224);
 
-    public CalendarController() {
+    public CalendarController(int userId) {
+        this.currentUserId = userId;
         this.medicineDao = new MedicineDao();
         this.dosageRecordDao = new DosageRecordDao();
         this.userPatternDao = new UserPatternDao();
@@ -74,24 +75,38 @@ public class CalendarController {
         loadMedicationsForDay(currentYearMonth.atDay(dayToSelect));
     }
 
+    private Map<LocalDate, List<DosageRecord>> getMonthlyDosageRecords() throws SQLException {
+        Map<LocalDate, List<DosageRecord>> monthlyRecords = new HashMap<>();
+        for (int day = 1; day <= currentYearMonth.lengthOfMonth(); day++) {
+            LocalDate date = currentYearMonth.atDay(day);
+            monthlyRecords.put(date, dosageRecordDao.findRecordsByUserIdAndDate(currentUserId, date.format(DateTimeFormatter.ISO_DATE)));
+        }
+        return monthlyRecords;
+    }
+
     private Map<Integer, List<Color>> preparePillColorMap() {
         Map<Integer, List<Color>> dayPillColorsMap = new HashMap<>();
         try {
             List<Medicine> userMedicines = medicineDao.findMedicinesByUserId(currentUserId);
             Map<LocalDate, List<DosageRecord>> monthlyDosageRecords = getMonthlyDosageRecords();
+
             for (int day = 1; day <= currentYearMonth.lengthOfMonth(); day++) {
                 LocalDate currentDate = currentYearMonth.atDay(day);
                 String dayOfWeek = currentDate.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.KOREAN);
                 List<Color> colorsForDay = new ArrayList<>();
+                List<DosageRecord> recordsForDate = monthlyDosageRecords.getOrDefault(currentDate, new ArrayList<>());
+
                 for (Medicine med : userMedicines) {
                     if (isMedicineScheduledForDay(med, dayOfWeek)) {
-                        boolean isTaken = monthlyDosageRecords.getOrDefault(currentDate, List.of())
-                                .stream()
+                        boolean isTaken = recordsForDate.stream()
                                 .anyMatch(dr -> dr.getMedId() == med.getMedId() && dr.isTaken());
 
                         if (isTaken) {
-                            try { colorsForDay.add(Color.decode(med.getColor())); }
-                            catch (Exception e) { colorsForDay.add(Color.GRAY); }
+                            try {
+                                colorsForDay.add(Color.decode(med.getColor()));
+                            } catch (Exception e) {
+                                colorsForDay.add(Color.GRAY);
+                            }
                         } else {
                             colorsForDay.add(NOT_TAKEN_COLOR);
                         }
@@ -106,15 +121,6 @@ public class CalendarController {
             if (calendarPanel != null) calendarPanel.showError("달력 정보 로딩 오류: " + e.getMessage());
         }
         return dayPillColorsMap;
-    }
-
-    private Map<LocalDate, List<DosageRecord>> getMonthlyDosageRecords() throws SQLException {
-        Map<LocalDate, List<DosageRecord>> monthlyRecords = new HashMap<>();
-        for (int day = 1; day <= currentYearMonth.lengthOfMonth(); day++) {
-            LocalDate date = currentYearMonth.atDay(day);
-            monthlyRecords.put(date, dosageRecordDao.findRecordsByUserIdAndDate(currentUserId, date.format(DateTimeFormatter.ISO_DATE)));
-        }
-        return monthlyRecords;
     }
 
     private boolean isMedicineScheduledForDay(Medicine medicine, String dayOfWeekShortKorean) {
@@ -139,14 +145,18 @@ public class CalendarController {
                     .filter(med -> isMedicineScheduledForDay(med, dayOfWeek))
                     .collect(Collectors.toList());
             List<DosageRecord> dosageRecords = dosageRecordDao.findRecordsByUserIdAndDate(currentUserId, date.format(DateTimeFormatter.ISO_DATE));
+
             for (Medicine med : scheduledMeds) {
                 boolean isTaken = dosageRecords.stream()
                         .filter(dr -> dr.getMedId() == med.getMedId())
                         .anyMatch(DosageRecord::isTaken);
                 String timeStr = formatMedicationTime(med);
                 Color color;
-                try { color = Color.decode(med.getColor()); }
-                catch (Exception e) { color = Color.GRAY; }
+                try {
+                    color = Color.decode(med.getColor());
+                } catch (Exception e) {
+                    color = Color.GRAY;
+                }
                 medicationInfos.add(new CalendarPanel.MedicationInfo(med.getMedId(), med.getMedName(), timeStr, color, isTaken));
             }
         } catch (SQLException e) {
@@ -205,14 +215,14 @@ public class CalendarController {
             UserPattern pattern = userPatternDao.findPatternByUserId(currentUserId);
             String medCondition = medicine.getMedCondition() != null ? medicine.getMedCondition().trim() : "";
             if (pattern != null) {
-                if (medCondition.contains("아침") || medCondition.equals("식사"))
-                    baseTime = (pattern.getBreakfastStartTime() != null && !pattern.getBreakfastStartTime().equals(":")) ? LocalTime.parse(pattern.getBreakfastStartTime()) : LocalTime.of(8,0);
+                if (medCondition.contains("아침"))
+                    baseTime = (pattern.getBreakfastStartTime() != null && !pattern.getBreakfastStartTime().isEmpty()) ? LocalTime.parse(pattern.getBreakfastStartTime()) : LocalTime.of(8,0);
                 else if (medCondition.contains("점심"))
-                    baseTime = (pattern.getLunchStartTime() != null && !pattern.getLunchStartTime().equals(":")) ? LocalTime.parse(pattern.getLunchStartTime()) : LocalTime.of(12,0);
+                    baseTime = (pattern.getLunchStartTime() != null && !pattern.getLunchStartTime().isEmpty()) ? LocalTime.parse(pattern.getLunchStartTime()) : LocalTime.of(12,0);
                 else if (medCondition.contains("저녁"))
-                    baseTime = (pattern.getDinnerStartTime() != null && !pattern.getDinnerStartTime().equals(":")) ? LocalTime.parse(pattern.getDinnerStartTime()) : LocalTime.of(18,0);
-                else if (medCondition.contains("수면") || medCondition.contains("취침"))
-                    baseTime = (pattern.getSleepStartTime() != null && !pattern.getSleepStartTime().equals(":")) ? LocalTime.parse(pattern.getSleepStartTime()) : LocalTime.of(22,0);
+                    baseTime = (pattern.getDinnerStartTime() != null && !pattern.getDinnerStartTime().isEmpty()) ? LocalTime.parse(pattern.getDinnerStartTime()) : LocalTime.of(18,0);
+                else if (medCondition.contains("취침"))
+                    baseTime = (pattern.getSleepStartTime() != null && !pattern.getSleepStartTime().isEmpty()) ? LocalTime.parse(pattern.getSleepStartTime()) : LocalTime.of(22,0);
             }
         } catch (Exception e) { System.err.println("시간 계산 오류: " + e.getMessage()); }
         int minutes = medicine.getMedMinutes();

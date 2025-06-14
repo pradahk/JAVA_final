@@ -80,7 +80,7 @@ public class MainApp {
 
         int userId = loggedInUser.getUserId();
 
-        CalendarPanel calendarPage = new CalendarPanel(pageCardLayout, pageContainer);
+        CalendarPanel calendarPage = new CalendarPanel(pageCardLayout, pageContainer, userId);
         LifestylePanel lifestylePage = new LifestylePanel(userId, pageContainer, pageCardLayout);
 
         Runnable refreshCalendarAction = () -> calendarPage.refresh();
