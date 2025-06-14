@@ -17,27 +17,69 @@ public class RegisterPanel extends JPanel {
 
     public RegisterPanel() {
         setLayout(new GridBagLayout());
+        setBackground(Color.WHITE);
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridx = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
 
-        JPanel formPanel = new JPanel();
-        formPanel.setLayout(new GridLayout(4, 2, 10, 10));
-        formPanel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setBackground(Color.WHITE);
+        container.add(Box.createVerticalStrut(20));
 
-        formPanel.add(new JLabel("사용자 이름:"));
+        // 제목
+        JLabel title = new JLabel("회원 가입");
+        title.setFont(new Font("SansSerif", Font.BOLD, 28));
+        title.setForeground(new Color(120, 140, 255));
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        container.add(title);
+        container.add(Box.createVerticalStrut(30));
+
+        // 사용자 이름 입력
         usernameField = new JTextField();
-        formPanel.add(usernameField);
+        usernameField.setMaximumSize(new Dimension(250, 40));
+        usernameField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        usernameField.setToolTipText("사용자 이름");
+        container.add(usernameField);
+        container.add(Box.createVerticalStrut(15));
 
-        formPanel.add(new JLabel("비밀번호:"));
+        // 비밀번호 입력
         passwordField = new JPasswordField();
-        formPanel.add(passwordField);
+        passwordField.setMaximumSize(new Dimension(250, 40));
+        passwordField.setAlignmentX(Component.CENTER_ALIGNMENT);
+        passwordField.setToolTipText("비밀번호");
+        container.add(passwordField);
+        container.add(Box.createVerticalStrut(20));
 
+        // 회원가입 버튼
         registerBtn = new JButton("회원가입");
-        formPanel.add(registerBtn);
+        registerBtn.setPreferredSize(new Dimension(250, 45));
+        registerBtn.setMaximumSize(new Dimension(250, 45));
+        registerBtn.setBackground(new Color(160, 180, 255));
+        registerBtn.setForeground(Color.WHITE);
+        registerBtn.setOpaque(true);
+        registerBtn.setBorderPainted(false);
+        registerBtn.setContentAreaFilled(true);
+        registerBtn.setFocusPainted(false);
+        registerBtn.setFont(new Font("SansSerif", Font.BOLD, 14));
+        registerBtn.setAlignmentX(Component.CENTER_ALIGNMENT);
+        container.add(registerBtn);
+        container.add(Box.createVerticalStrut(15));
 
+        // 로그인으로 돌아가기 버튼
         backToLoginButton = new JButton("로그인 화면으로");
-        formPanel.add(backToLoginButton);
+        backToLoginButton.setPreferredSize(new Dimension(250, 40));
+        backToLoginButton.setMaximumSize(new Dimension(250, 40));
+        backToLoginButton.setBackground(new Color(250, 250, 250));
+        backToLoginButton.setBorder(BorderFactory.createLineBorder(Color.LIGHT_GRAY, 1, true));
+        backToLoginButton.setFocusPainted(false);
+        backToLoginButton.setFont(new Font("SansSerif", Font.PLAIN, 13));
+        backToLoginButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        container.add(backToLoginButton);
 
-        add(formPanel);
+        add(container, gbc);
 
+        // 액션 연결
         registerBtn.addActionListener(e -> handleRegister());
     }
 
