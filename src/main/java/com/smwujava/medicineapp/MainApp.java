@@ -1,15 +1,15 @@
 package com.smwujava.medicineapp;
 
 import com.smwujava.medicineapp.admin.AdminDashboardPanel;
+import com.smwujava.medicineapp.dao.DosageRecordDao;
+import com.smwujava.medicineapp.dao.MedicineDao;
+import com.smwujava.medicineapp.dao.UserPatternDao;
 import com.smwujava.medicineapp.db.DBManager;
 import com.smwujava.medicineapp.model.User;
 import com.smwujava.medicineapp.music.BGMPlayer;
 import com.smwujava.medicineapp.Scheduler.AlarmScheduler;
 import com.smwujava.medicineapp.service.UserService;
 import com.smwujava.medicineapp.ui.panels.*;
-import com.smwujava.medicineapp.dao.DosageRecordDao;
-import com.smwujava.medicineapp.dao.MedicineDao;
-import com.smwujava.medicineapp.dao.UserPatternDao;
 
 import javax.swing.*;
 import java.awt.*;
@@ -30,6 +30,11 @@ public class MainApp {
         appCardLayout = new CardLayout();
         mainContainerPanel = new JPanel(appCardLayout);
 
+        // 1. 시작 화면: 캐릭터
+        CharacterPanel characterPanel = new CharacterPanel(appCardLayout, mainContainerPanel);
+        mainContainerPanel.add(characterPanel, "CHARACTER");
+
+        // 2. 로그인 / 회원가입 화면
         LoginPanel loginPanel = new LoginPanel();
         RegisterPanel registerPanel = new RegisterPanel();
 
@@ -42,7 +47,7 @@ public class MainApp {
 
         mainFrame.add(mainContainerPanel, BorderLayout.CENTER);
 
-        showPanel("LOGIN");
+        showPanel("CHARACTER");
 
         mainFrame.setSize(new Dimension(500, 800));
         mainFrame.setMinimumSize(new Dimension(450, 700));
@@ -80,6 +85,7 @@ public class MainApp {
 
         int userId = loggedInUser.getUserId();
 
+        // ✅ userId 전달 버전 유지
         CalendarPanel calendarPage = new CalendarPanel(pageCardLayout, pageContainer, userId);
         LifestylePanel lifestylePage = new LifestylePanel(userId, pageContainer, pageCardLayout);
 
@@ -98,7 +104,7 @@ public class MainApp {
 
         mainContainerPanel.add(mainViewPanel, "MAIN_VIEW");
 
-        // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
+        // 알람 스케줄러 시작
         AlarmScheduler scheduler = new AlarmScheduler(
                 mainFrame,
                 userId,
@@ -115,7 +121,6 @@ public class MainApp {
     }
 
     private void startBGM() {
-        // resources/music 폴더의 background_music.wav 파일을 재생
         bgmPlayer = new BGMPlayer("/music/background_music.wav");
         bgmPlayer.start();
     }
@@ -125,7 +130,7 @@ public class MainApp {
     }
 
     private LoginPanel findLoginPanel() {
-        for(Component comp : mainContainerPanel.getComponents()) {
+        for (Component comp : mainContainerPanel.getComponents()) {
             if (comp instanceof LoginPanel) {
                 return (LoginPanel) comp;
             }

@@ -1,7 +1,5 @@
 package com.smwujava.medicineapp.ui.panels;
 
-import com.smwujava.medicineapp.test.LoginWindow;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionListener;
@@ -24,7 +22,7 @@ public class LoginPanel extends JPanel {
         container.setBackground(Color.WHITE);
         container.add(Box.createVerticalStrut(20));
 
-        // ✅ 캐릭터 이미지 삽입 (비율 유지: 200 x 259)
+        // 캐릭터 이미지 삽입 (비율 유지: 200 x 259)
         ImageIcon icon = new ImageIcon(getClass().getResource("/icons/character.png"));
         Image scaledImage = icon.getImage().getScaledInstance(200, 259, Image.SCALE_SMOOTH);
         JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
@@ -88,10 +86,6 @@ public class LoginPanel extends JPanel {
         container.add(joinButton);
 
         add(container, gbc);
-    }
-
-    // 오버로드된 생성자 (사용 안 해도 남겨둠)
-    public LoginPanel(LoginWindow loginWindow, Object o) {
     }
 
     // 로그인 버튼 액션 등록
