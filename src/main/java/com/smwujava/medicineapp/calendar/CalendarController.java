@@ -10,7 +10,6 @@ import com.smwujava.medicineapp.ui.panels.CalendarPanel;
 
 import java.awt.Color;
 import java.sql.SQLException;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;

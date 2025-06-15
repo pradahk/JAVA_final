@@ -24,7 +24,7 @@ public class LoginPanel extends JPanel {
         container.setBackground(Color.WHITE);
         container.add(Box.createVerticalStrut(20));
 
-        // ✅ 캐릭터 이미지 삽입 (비율 유지: 200 x 259)
+        // 캐릭터 이미지 삽입 (비율 유지: 200 x 259)
         ImageIcon icon = new ImageIcon(getClass().getResource("/icons/character.png"));
         Image scaledImage = icon.getImage().getScaledInstance(200, 259, Image.SCALE_SMOOTH);
         JLabel imageLabel = new JLabel(new ImageIcon(scaledImage));
@@ -103,11 +103,9 @@ public class LoginPanel extends JPanel {
     public void addRegisterActionListener(ActionListener listener) {
         this.joinButton.addActionListener(listener);
     }
-
     public String getUsername() {
         return usernameField.getText();
     }
-
     public String getPassword() {
         return new String(passwordField.getPassword());
     }

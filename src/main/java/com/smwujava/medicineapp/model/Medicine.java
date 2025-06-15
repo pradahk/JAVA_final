@@ -11,22 +11,8 @@ public class Medicine {
     private int medMinutes;
     private String color;
 
-    public Medicine() {
-    }
-
     public Medicine(int medId, int userId, String medName, int medDailyAmount, String medDays, String medCondition, String medTiming, int medMinutes, String color) {
         this.medId = medId;
-        this.userId = userId;
-        this.medName = medName;
-        this.medDailyAmount = medDailyAmount;
-        this.medDays = medDays;
-        this.medCondition = medCondition;
-        this.medTiming = medTiming;
-        this.medMinutes = medMinutes;
-        this.color = color;
-    }
-
-    public Medicine(int userId, String medName, int medDailyAmount, String medDays, String medCondition, String medTiming, int medMinutes, String color) {
         this.userId = userId;
         this.medName = medName;
         this.medDailyAmount = medDailyAmount;

@@ -28,7 +28,6 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         try {
             LocalDate endDate = LocalDate.now();
             LocalDate startDate = endDate.minusDays(ANALYSIS_WINDOW_DAYS);
-            // DosageRecordDao에서 실제 복용했으며 건너뛰지 않은 기록만 가져오도록 이미 수정되었습니다.
             recentRecords = dosageRecordDao.findRecordsByUserIdAndDateRange(userId, startDate.toString(), endDate.toString());
         } catch (SQLException e) {
             System.err.println("Error fetching recent records for adjustment analysis: " + e.getMessage());
@@ -126,48 +125,8 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
         if (Math.abs(avgOffset) >= ACCEPTABLE_OFFSET_MINUTES) {
             return baseTime.plusMinutes(avgOffset);
         } else {
-            return baseTime; // 보정 필요 없음
+            return baseTime;
         }
-    }
-
-    public LocalDateTime getAdjustedTime(int userId, int medId, LocalDateTime scheduledTime) {
-        DosageRecordDao dao = new DosageRecordDao();
-
-        try {
-            // 최근 7일간 복용 기록 조회
-            LocalDate endDate = LocalDate.now();
-            LocalDate startDate = endDate.minusDays(7);
-            List<DosageRecord> records = dao.findRecordsByUserIdAndDateRange(userId, startDate.toString(), endDate.toString());
-
-            long totalOffset = 0;
-            int count = 0;
-
-            for (DosageRecord record : records) {
-                if (record.getMedId() == medId &&
-                        record.getScheduledTime() != null &&
-                        record.getActualTakenTime() != null &&
-                        !record.isSkipped()) {
-
-                    long offset = Duration.between(record.getScheduledTime(), record.getActualTakenTime()).toMinutes();
-                    if (Math.abs(offset) <= 15) {  // 허용 편차 이내
-                        totalOffset += offset;
-                        count++;
-                    }
-                }
-            }
-
-            // 평균 지연시간이 존재하고 4회 이상이면 보정
-            if (count >= 4) {
-                long averageOffset = totalOffset / count;
-                return scheduledTime.plusMinutes(averageOffset);
-            }
-
-        } catch (SQLException e) {
-            System.err.println("알람 시간 보정 실패: " + e.getMessage());
-        }
-
-        // 보정하지 않고 원래 시간 그대로 반환
-        return scheduledTime;
     }
 
     private int applyRescheduledTimesToFutureRecords(List<DosageRecord> futureRecords, Map<LocalTime, LocalTime> adjustedMap) {
@@ -189,12 +148,11 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
                     boolean success = dosageRecordDao.updateRescheduledTime(
                             record.getUserId(),
                             record.getMedId(),
-                            record.getScheduledTime(), // 원본 scheduledTime을 기준으로 업데이트
-                            rescheduled // 새로 계산된 rescheduledTime 설정
+                            record.getScheduledTime(),
+                            rescheduled
                     );
                     if (success) {
                         updatedCount++;
-                        // 모델 객체도 업데이트 (선택 사항, 그러나 일관성을 위해 권장)
                         record.setRescheduledTime(rescheduled);
                     }
                 } catch (SQLException e) {
@@ -204,19 +162,5 @@ public class SuggestAdjustedTime { // 파일명 변경에 따라 클래스명 �
             }
         }
         return updatedCount;
-    }
-
-    public boolean resetAdjustedTimes(int userId) {
-        try {
-            boolean success = dosageRecordDao.resetAllRescheduledTimes(userId);
-            if (!success) {
-                System.out.println("No rescheduled times found to reset for user ID: " + userId);
-            }
-            return success;
-        } catch (SQLException e) {
-            System.err.println("Error resetting all adjusted times for user ID " + userId + ": " + e.getMessage());
-            e.printStackTrace();
-            return false;
-        }
     }
 }

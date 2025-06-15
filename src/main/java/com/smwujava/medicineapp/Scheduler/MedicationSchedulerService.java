@@ -7,165 +7,127 @@ import com.smwujava.medicineapp.model.DosageRecord;
 import com.smwujava.medicineapp.model.Medicine;
 import com.smwujava.medicineapp.model.UserPattern;
 import com.smwujava.medicineapp.service.AlarmManager;
-import com.smwujava.medicineapp.service.SuggestAdjustedTime;
 
+import javax.swing.JFrame;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.List;
-import java.time.format.DateTimeFormatter;
-import javax.swing.JFrame;
-import javax.swing.SwingUtilities;
 
 public class MedicationSchedulerService {
-    private final DosageRecordDao recordDao;
-    private final AlarmManager alarmManager;
-    private final SuggestAdjustedTime adjuster;
-
-
-    public void scheduleDailyAlarms(int userId, DosageRecordDao dosageRecordDao, UserPatternDao userPatternDao) {
-        // 여기에 알람 스케줄링 관련 로직을 작성
-        System.out.println("[MedicationSchedulerService] 스케줄 실행됨: userId = " + userId);
-    }
-
-    private DosageRecordDao dosageRecordDao;
-    private MedicineDao medicineDao;
-    private UserPatternDao userPatternDao;
+    private final DosageRecordDao dosageRecordDao;
+    private final MedicineDao medicineDao;
+    private final UserPatternDao userPatternDao;
 
     public MedicationSchedulerService(DosageRecordDao dosageRecordDao, MedicineDao medicineDao, UserPatternDao userPatternDao) {
-
-        this.recordDao = dosageRecordDao;
-        this.adjuster = new SuggestAdjustedTime(dosageRecordDao);
-        this.alarmManager = new AlarmManager();
-
         this.dosageRecordDao = dosageRecordDao;
         this.medicineDao = medicineDao;
         this.userPatternDao = userPatternDao;
     }
 
     public void scheduleTodayMedications(int userId, JFrame parentFrame) {
-        UserPattern pattern = null;
-        List<Medicine> medicines = null;
+        UserPattern pattern;
+        List<Medicine> medicines;
 
         try {
             pattern = userPatternDao.findPatternByUserId(userId);
             if (pattern == null) {
-                System.err.println("사용자 생활 패턴이 없습니다: userId = " + userId);
+                System.err.println("사용자 생활 패턴이 없습니다. 스케줄링을 중단합니다.");
                 return;
             }
 
             medicines = medicineDao.findMedicinesByUserId(userId);
             if (medicines.isEmpty()) {
-                System.out.println("등록된 약이 없습니다: userId = " + userId);
+                System.out.println("등록된 약이 없습니다.");
                 return;
             }
         } catch (SQLException e) {
-            System.err.println("스케줄링을 위한 데이터 로딩 중 오류 발생: " + e.getMessage());
+            System.err.println("스케줄링 데이터 로딩 중 DB 오류 발생: " + e.getMessage());
             e.printStackTrace();
             return;
         }
 
+        System.out.println("오늘의 복용 스케줄 생성을 시작합니다");
         LocalDate today = LocalDate.now();
 
         for (Medicine med : medicines) {
-            List<String> days = Arrays.asList(med.getMedDays().split(","));
-            if (!shouldTakeToday(days)) continue;
+            System.out.println("\n[처리 시작] medId: " + med.getMedId() + ", 약 이름: " + med.getMedName());
 
-            LocalTime baseTime = getBaseTime(pattern, med);
+            if (!shouldTakeToday(med.getMedDays())) {
+                System.out.println("  -> 오늘은 복용 요일이 아닙니다. 건너뜁니다.");
+                continue;
+            }
 
-            for (int i = 0; i < med.getMedDailyAmount(); i++) {
-                // TODO: med.getMedDailyAmount()에 따른 정확한 예정 시간 계산 로직 필요
-                LocalTime scheduledTime = baseTime.plusHours(i * 4); // 임시 로직
-                LocalDateTime scheduledDateTime = LocalDateTime.of(today, scheduledTime);
+            LocalTime scheduledTime = getBaseTime(pattern, med);
 
-                SuggestAdjustedTime adjuster = new SuggestAdjustedTime(dosageRecordDao);
-                int delayMinutes = adjuster.suggestAndApplyAdjustedTime(userId, med.getMedId());
+            if (scheduledTime == null) {
+                System.err.println("  -> 복용 시간을 계산할 수 없습니다. 이 약의 스케줄링을 건너뜁니다.");
+                continue;
+            }
+            System.out.println("  -> 계산된 복용 시각: " + scheduledTime);
 
-                if (delayMinutes >= 15) {
-                    scheduledDateTime = scheduledDateTime.plusMinutes(delayMinutes);
-                    System.out.println("⏰ 사용자 복약 패턴에 따라 " + delayMinutes + "분 보정됨: " + scheduledDateTime);
-                }
+            LocalDateTime scheduledDateTime = LocalDateTime.of(today, scheduledTime);
 
-                // DosageRecord 객체 생성 부분 수정
-                DosageRecord record = new DosageRecord(); // 기본 생성자 사용
-                record.setUserId(userId);
-                record.setMedId(med.getMedId()); // 현재 처리 중인 Medicine 객체의 medId 사용
-                record.setScheduledTime(scheduledDateTime);
-                record.setActualTakenTime(null);
-                record.setRescheduledTime(null);
-                record.setSkipped(false); // 새로 생성하는 기록이므로 false로 설정
+            DosageRecord record = new DosageRecord();
+            record.setUserId(userId);
+            record.setMedId(med.getMedId());
+            record.setScheduledTime(scheduledDateTime);
+            record.setActualTakenTime(null);
+            record.setRescheduledTime(null);
+            record.setSkipped(false);
 
-                try {
-                    dosageRecordDao.insertDosageRecord(record);
-
-                    int delayCount = userPatternDao.getLateCountLastWeek(userId);
-                    int avgDelay = userPatternDao.getAverageDelayMinutesByUser(userId);
-                    LocalDateTime adjustedTime = scheduledDateTime;
-
-                    if (delayCount >= 4) {
-                        adjustedTime = adjustedTime.plusMinutes(avgDelay);
-                        System.out.println("⏰ 알람 시간 조정됨 → medId: " + med.getMedId()
-                                + ", 기본 시각: " + scheduledDateTime
-                                + ", 평균 지연: " + avgDelay + "분 → 조정된 시각: " + adjustedTime);
-                    } else {
-                        System.out.println("✅ 기본 시간으로 알람 예약 → medId: " + med.getMedId()
-                                + ", 예정 시각: " + scheduledDateTime);
-                    }
-
-
-                    AlarmManager.scheduleAlarm(parentFrame, userId, med.getMedId(), adjustedTime);
-
-
-                } catch (SQLException e) {
-                    // SQLite의 UNIQUE 제약 조건 메시지 확인
-                    if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed: DosageRecords.user_id, DosageRecords.med_id, record_date")) {
-                        System.out.println("DEBUG: 이미 존재하는 복용 기록 (중복 삽입 방지): userId=" + userId + ", medId=" + med.getMedId() + ", date=" + today);
-                    } else {
-                        System.err.println("복용 기록 삽입 중 오류 발생: " + e.getMessage());
-                        e.printStackTrace();
-                    }
+            try {
+                dosageRecordDao.insertDosageRecord(record);
+                System.out.println("  -> DB에 복용 기록 생성 완료.");
+                System.out.println("  -> AlarmManager에 알람 예약을 요청합니다: " + scheduledDateTime);
+                AlarmManager.scheduleAlarm(parentFrame, userId, med.getMedId(), scheduledDateTime);
+            } catch (SQLException e) {
+                if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
+                    System.out.println("  -> DEBUG: 이미 존재하는 복용 기록입니다. 새로 생성하지 않습니다.");
+                } else {
+                    System.err.println("  -> 복용 기록 삽입 중 오류 발생: " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
-        System.out.println("복용 스케줄 생성 완료: userId = " + userId);
+        System.out.println("\n모든 약의 스케줄 생성이 완료되었습니다");
     }
 
-    public void scheduleTodayAlarms(int userId, JFrame parentFrame) {
-        DosageRecordDao recordDao = new DosageRecordDao();
+    private LocalTime getBaseTime(UserPattern pattern, Medicine med) {
+        LocalTime refTime;
+        String medCondition = med.getMedCondition();
+        boolean isBefore = "전".equals(med.getMedTiming());
+        int offset = med.getMedMinutes();
 
-        try {
-            List<DosageRecord> todayRecords = recordDao.findRecordsByUserIdAndDate(
-                    userId,
-                    LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-            );
+        System.out.println("  -> getBaseTime 호출됨. 조건: '" + medCondition + "', 타이밍: " + (isBefore ? "식전" : "식후") + ", 오프셋: " + offset + "분");
 
-            for (DosageRecord record : todayRecords) {
-                int medId = record.getMedId();
-                LocalDateTime scheduledTime = record.getScheduledTime();
-
-                // ✅ 보정 시간 계산
-                LocalDateTime adjustedTime = adjuster.getAdjustedTime(userId, medId, scheduledTime);
-
-
-                // 보정된 시간으로 알람 예약
-                AlarmManager.scheduleAlarm(parentFrame,userId, medId, adjustedTime);
-            }
-
-        } catch (Exception e) {
-            System.err.println("오늘의 알람 예약 중 오류 발생: " + e.getMessage());
-            e.printStackTrace();
+        // 'medCondition' 문자열에 "아침", "점심", "저녁" 키워드가 있는지 직접 확인
+        if (medCondition != null && medCondition.contains("아침")) {
+            refTime = isBefore ? parseTime(pattern.getBreakfastStartTime(), "아침 시작") : parseTime(pattern.getBreakfastEndTime(), "아침 종료");
+        } else if (medCondition != null && medCondition.contains("점심")) {
+            refTime = isBefore ? parseTime(pattern.getLunchStartTime(), "점심 시작") : parseTime(pattern.getLunchEndTime(), "점심 종료");
+        } else if (medCondition != null && medCondition.contains("저녁")) {
+            refTime = isBefore ? parseTime(pattern.getDinnerStartTime(), "저녁 시작") : parseTime(pattern.getDinnerEndTime(), "저녁 종료");
+        } else if (medCondition != null && medCondition.contains("잠자기")) {
+            refTime = parseTime(pattern.getSleepStartTime(), "취침 시간");
+        } else {
+            System.err.println("  -> 알 수 없는 복용 조건입니다: " + medCondition);
+            return null;
         }
+
+        if (refTime == null) return null;
+        return isBefore ? refTime.minusMinutes(offset) : refTime.plusMinutes(offset);
     }
 
-
-    private boolean shouldTakeToday(List<String> days) {
+    private boolean shouldTakeToday(String medDays) {
+        if (medDays == null || medDays.trim().isEmpty()) return false;
+        List<String> days = Arrays.asList(medDays.split(","));
         if (days.contains("매일")) return true;
 
-        java.time.DayOfWeek todayOfWeek = LocalDate.now().getDayOfWeek();
-        String todayKor = "";
-        switch (todayOfWeek) {
+        String todayKor;
+        switch (LocalDate.now().getDayOfWeek()) {
             case MONDAY: todayKor = "월"; break;
             case TUESDAY: todayKor = "화"; break;
             case WEDNESDAY: todayKor = "수"; break;
@@ -173,45 +135,21 @@ public class MedicationSchedulerService {
             case FRIDAY: todayKor = "금"; break;
             case SATURDAY: todayKor = "토"; break;
             case SUNDAY: todayKor = "일"; break;
+            default: return false;
         }
         return days.contains(todayKor);
     }
 
-    private LocalTime getBaseTime(UserPattern pattern, Medicine med) {
-        LocalTime refTime;
-        String medCondition = med.getMedCondition();
-
-        if (pattern == null) {
-            System.err.println("UserPattern is null. Cannot determine base time.");
-            return LocalTime.of(9, 0);
-        }
-
-        if (medCondition == null) {
-            System.err.println("Medication condition is null for medId: " + med.getMedId() + ". Defaulting to breakfast.");
-            refTime = parseTime(pattern.getBreakfastStartTime());
-        } else if ("식사".equals(medCondition)) {
-            refTime = parseTime(pattern.getBreakfastStartTime()); // TODO: 실제 시나리오에 맞게 개선
-        } else if ("잠자기".equals(medCondition)) {
-            refTime = parseTime(pattern.getSleepStartTime());
-        } else {
-            System.err.println("Unknown medication condition: " + medCondition + ". Defaulting to breakfast.");
-            refTime = parseTime(pattern.getBreakfastStartTime());
-        }
-
-        int offset = med.getMedMinutes();
-        return "전".equals(med.getMedTiming()) ? refTime.minusMinutes(offset) : refTime.plusMinutes(offset);
-    }
-
-    private LocalTime parseTime(String timeStr) {
+    private LocalTime parseTime(String timeStr, String context) {
         if (timeStr == null || timeStr.trim().isEmpty()) {
-            System.err.println("시간 문자열이 비어있습니다. 기본 시간 '09:00' 반환.");
-            return LocalTime.of(9, 0);
+            System.err.println("  -> X " + context + " 시간이 설정되지 않아 계산에 실패했습니다.");
+            return null;
         }
         try {
             return LocalTime.parse(timeStr);
         } catch (java.time.format.DateTimeParseException e) {
-            System.err.println("시간 문자열 파싱 오류: " + timeStr + ". 기본 시간 '09:00' 반환. 오류: " + e.getMessage());
-            return LocalTime.of(9, 0);
+            System.err.println("  -> X " + context + "의 시간 형식('" + timeStr + "')이 잘못되었습니다.");
+            return null;
         }
     }
 }

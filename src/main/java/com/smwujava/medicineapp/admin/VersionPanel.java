@@ -5,7 +5,6 @@ import java.awt.*;
 
 public class VersionPanel extends JPanel {
 
-    //마지막 수정 version / 날짜 변수로 빼둠
     private final String currentVersion = "v1.3.2";
     private final String latestVersion = "v1.3.2";
     private final String lastModifiedDate = "2025-05-28";

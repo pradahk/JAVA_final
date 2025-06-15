@@ -96,41 +96,6 @@ public class UserDao {
         return user;
     }
 
-    public static boolean updateUser(User user) throws SQLException {
-        String sql = "UPDATE Users SET username = ?, password = ?, auto_login = ? WHERE user_id = ?";
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, user.getUsername());
-            pstmt.setString(2, user.getPassword());
-            pstmt.setInt(3, user.isAutoLogin() ? 1 : 0);
-            pstmt.setInt(4, user.getUserId());
-
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0;
-        } catch (SQLException e) {
-            System.err.println("Error updating user with ID " + user.getUserId() + ": " + e.getMessage());
-            throw e;
-        }
-    }
-
-    public static boolean deleteUser(int userId) throws SQLException {
-        String sql = "DELETE FROM Users WHERE user_id = ?";
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, userId);
-
-            int affectedRows = pstmt.executeUpdate();
-            return affectedRows > 0;
-        } catch (SQLException e) {
-            System.err.println("Error deleting user with ID " + userId + ": " + e.getMessage());
-            throw e;
-        }
-    }
-
     public static boolean updateAutoLoginStatus(int userId, boolean autoLogin) throws SQLException {
         String sql = "UPDATE Users SET auto_login = ? WHERE user_id = ?";
 
@@ -191,23 +156,5 @@ public class UserDao {
             throw e;
         }
         return users;
-    }
-
-    public static int getTotalNormalUserCount() throws SQLException {
-        String sql = "SELECT COUNT(*) FROM Users WHERE is_admin = 0";
-        int count = 0;
-
-        try (Connection conn = DBManager.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    count = rs.getInt(1);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting total normal user count: " + e.getMessage());
-            throw e;
-        }
-        return count;
     }
 }

@@ -35,8 +35,6 @@ public class LifestylePanel extends JPanel {
         nameLabel.setFont(new Font("SansSerif", Font.BOLD, 18));
         nameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 생년월일 레이블은 User 모델에 해당 필드가 없으므로 제거합니다.
-
         content.add(Box.createVerticalStrut(20));
         content.add(nameLabel);
         content.add(Box.createVerticalStrut(30));

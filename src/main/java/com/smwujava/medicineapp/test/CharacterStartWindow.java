@@ -20,7 +20,7 @@ public class CharacterStartWindow extends JFrame {
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
 
-        // 1. 캐릭터 시작 화면 (필요한 인자 전달)
+        // 1. 캐릭터 시작 화면
         CharacterPanel characterScreen = new CharacterPanel(cardLayout, mainPanel);
         mainPanel.add(characterScreen, "CHARACTER");
 

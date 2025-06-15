@@ -10,29 +10,32 @@ import com.smwujava.medicineapp.ui.panels.*;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.dao.UserPatternDao;
+import com.smwujava.medicineapp.ui.panels.CharacterPanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.function.Consumer;
 
 public class MainApp {
-    private JFrame mainFrame;
+    private static JFrame mainFrameInstance;
     private CardLayout appCardLayout;
     private JPanel mainContainerPanel;
     private BGMPlayer bgmPlayer;
     private User loggedInUser;
 
     public MainApp() {
-        mainFrame = new JFrame("나의 약 복용 캘린더");
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        mainFrame.setLayout(new BorderLayout());
+        mainFrameInstance = new JFrame("나의 약 복용 캘린더");
+        mainFrameInstance.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrameInstance.setLayout(new BorderLayout());
 
         appCardLayout = new CardLayout();
         mainContainerPanel = new JPanel(appCardLayout);
 
+        CharacterPanel characterPanel = new CharacterPanel(appCardLayout, mainContainerPanel);
         LoginPanel loginPanel = new LoginPanel();
         RegisterPanel registerPanel = new RegisterPanel();
 
+        mainContainerPanel.add(characterPanel, "CHARACTER");
         mainContainerPanel.add(loginPanel, "LOGIN");
         mainContainerPanel.add(registerPanel, "REGISTER");
 
@@ -40,14 +43,14 @@ public class MainApp {
         loginPanel.addRegisterActionListener(e -> showPanel("REGISTER"));
         registerPanel.addBackToLoginListener(e -> showPanel("LOGIN"));
 
-        mainFrame.add(mainContainerPanel, BorderLayout.CENTER);
+        mainFrameInstance.add(mainContainerPanel, BorderLayout.CENTER);
 
-        showPanel("LOGIN");
+        showPanel("CHARACTER");
 
-        mainFrame.setSize(new Dimension(500, 800));
-        mainFrame.setMinimumSize(new Dimension(450, 700));
-        mainFrame.setLocationRelativeTo(null);
-        mainFrame.setVisible(true);
+        mainFrameInstance.setSize(new Dimension(500, 800));
+        mainFrameInstance.setMinimumSize(new Dimension(450, 700));
+        mainFrameInstance.setLocationRelativeTo(null);
+        mainFrameInstance.setVisible(true);
     }
 
     private void handleLogin() {
@@ -68,7 +71,7 @@ public class MainApp {
                 showPanel("MAIN_VIEW");
             }
         } else {
-            JOptionPane.showMessageDialog(mainFrame, "아이디 또는 비밀번호가 일치하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrameInstance, "아이디 또는 비밀번호가 일치하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -98,9 +101,8 @@ public class MainApp {
 
         mainContainerPanel.add(mainViewPanel, "MAIN_VIEW");
 
-        // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
         AlarmScheduler scheduler = new AlarmScheduler(
-                mainFrame,
+                mainFrameInstance,
                 userId,
                 new DosageRecordDao(),
                 new UserPatternDao(),
@@ -115,7 +117,6 @@ public class MainApp {
     }
 
     private void startBGM() {
-        // resources/music 폴더의 background_music.wav 파일을 재생
         bgmPlayer = new BGMPlayer("/music/background_music.wav");
         bgmPlayer.start();
     }
@@ -131,6 +132,14 @@ public class MainApp {
             }
         }
         return null;
+    }
+
+    public static JFrame getFrame() {
+        return mainFrameInstance;
+    }
+
+    public static boolean isRunning() {
+        return mainFrameInstance != null && mainFrameInstance.isVisible();
     }
 
     public static void main(String[] args) {

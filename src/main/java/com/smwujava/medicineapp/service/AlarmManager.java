@@ -1,98 +1,65 @@
 package com.smwujava.medicineapp.service;
 
-import java.util.Map;
-import java.util.HashMap;
+import com.smwujava.medicineapp.dao.MedicineDao;
+import com.smwujava.medicineapp.ui.alerts.AlarmPopup;
+
+import javax.swing.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
-import com.smwujava.medicineapp.ui.alerts.AlarmPopup;
-import com.smwujava.medicineapp.dao.UserPatternDao;
-import com.smwujava.medicineapp.dao.MedicineDao;
-import javax.swing.JFrame;
 
 public class AlarmManager {
 
-    private static final Timer timer = new Timer();
+    private static final Timer timer = new Timer("AlarmTimer", true);
     private static final Map<Integer, TimerTask> scheduledTasks = new HashMap<>();
 
-    public static void triggerAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime scheduledTime) {
-        MedicineDao medicineDao = new MedicineDao();
-        String medName = medicineDao.findMedicineNameById(medId);  // 약 이름 조회
-        AlarmPopup.show(parentFrame, userId, medId, scheduledTime, medName);  // 약 이름 포함해서 팝업 실행
-    }
-
-    public static void snoozeAlarm(JFrame parentFrame, int userId, int medId, int minutes) {
-        LocalDateTime newTime = LocalDateTime.now().plusSeconds(10);  // ✅ 테스트용
-        scheduleAlarm(parentFrame, userId, medId, newTime);
-    }
-
-    public static void cancelAlarm(int medId) {
-        TimerTask task = scheduledTasks.get(medId);
-        if (task != null) {
-            task.cancel();
-            scheduledTasks.remove(medId);
-            System.out.println("알람이 취소되었습니다. medId=" + medId);
-        } else {
-            System.out.println("취소할 알람이 존재하지 않습니다. medId=" + medId);
-        }
-    }
-
-    // 🔧 수정: userId와 scheduledTime도 전달받아 다시 알림 실행
-    public static void rescheduleAlarm(int userId, int medId, LocalDateTime newTime) {
-        cancelAlarm(medId);  // 기존 알람이 있다면 제거
-
-        long delayMillis = java.sql.Timestamp.valueOf(newTime).getTime() - System.currentTimeMillis();
-
-        if (delayMillis <= 0) {
-            System.out.println("이미 지난 시간이므로 재알림 생략: " + newTime);
-            return;
-        }
-
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                System.out.println("[재알림] User " + userId + "님, 약(" + medId + ")을 복용할 시간입니다! (재알림)");
-                triggerAlarm(null,userId, medId, newTime);
-            }
-        };
-
-        timer.schedule(task, delayMillis);
-        scheduledTasks.put(medId, task);
-        System.out.println("재알림 예약 완료 → userId=" + userId + ", medId=" + medId + ", 시간=" + newTime);
-    }
-
+    // 특정 약(medId)에 대한 알람을 예약
     public static void scheduleAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime time) {
-        cancelAlarm(medId);  // 중복 방지
+        cancelAlarm(medId);
 
-        // 🔽 사용자 복약 패턴 기반 알람 시간 자동 조정 추가
-        UserPatternDao patternDao = new UserPatternDao();
-        int delayCount = patternDao.getLateCountLastWeek(userId);
-        int averageDelay = patternDao.getAverageDelayMinutesByUser(userId);
-
-        if (delayCount >= 4) {
-            time = time.plusMinutes(averageDelay);  // 알람 시간 자동 보정
-            System.out.println(" 사용자 패턴 기반으로 알람 시간이 조정됨: " + time);
-        }
-
-        long delayMillis = java.sql.Timestamp.valueOf(time).getTime() - System.currentTimeMillis();
-
-        if (delayMillis <= 0) {
-            System.out.println("이미 지난 시간이므로 알람 예약 생략: " + time);
+        if (time.isBefore(LocalDateTime.now())) {
+            System.out.println("[AlarmManager] 알람 시간이 과거이므로 예약하지 않음: medId=" + medId + ", time=" + time);
             return;
         }
 
-        final LocalDateTime scheduledTime = time;
+        long delayMillis = java.time.Duration.between(LocalDateTime.now(), time).toMillis();
 
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
                 System.out.println("[알림] User " + userId + "님, 약(" + medId + ")을 복용할 시간입니다!");
-                triggerAlarm(parentFrame, userId, medId, scheduledTime);
+                triggerAlarm(parentFrame, userId, medId, time);
+                scheduledTasks.remove(medId);
             }
         };
 
         timer.schedule(task, delayMillis);
         scheduledTasks.put(medId, task);
-        System.out.println("[AlarmManager] 알람 예약 완료 → userId=" + userId + ", medId=" + medId + ", 시간=" + time);
+        System.out.println("[AlarmManager] 알람 예약 완료 → medId=" + medId + ", 실행 시각=" + time);
+    }
+
+    // 알람을 실제로 화면에 표시
+    public static void triggerAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime scheduledTime) {
+        MedicineDao medicineDao = new MedicineDao();
+        String medName = medicineDao.findMedicineNameById(medId);
+        AlarmPopup.show(parentFrame, userId, medId, scheduledTime, medName);
+    }
+
+    // 예약된 알람을 취소
+    public static void cancelAlarm(int medId) {
+        TimerTask task = scheduledTasks.get(medId);
+        if (task != null) {
+            task.cancel();
+            scheduledTasks.remove(medId);
+            System.out.println("[AlarmManager] 알람이 취소되었습니다. medId=" + medId);
+        }
+    }
+
+    // 알람을 다른 시간으로 다시 예약(주로 '나중에 먹기'에서 사용)
+    public static void rescheduleAlarm(JFrame parentFrame, int userId, int medId, LocalDateTime newTime) {
+        System.out.println("[AlarmManager] 재예약 요청 → medId=" + medId + ", 새로운 시간=" + newTime);
+        scheduleAlarm(parentFrame, userId, medId, newTime);
     }
 }

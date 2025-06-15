@@ -17,12 +17,12 @@ public class MedicationListPanel extends JPanel {
     private CalendarPanel calendarPanel;
     private JLabel titleLabel;
     private CountdownPanel countdownPanel; // CountdownPanel을 필드로 유지
-    private final int currentUserId; // 생성자를 통해 userId를 받음
+    private final int currentUserId;
 
-    public MedicationListPanel(CardLayout cardLayout, JPanel parentPanel, int userId) { // userId 파라미터 추가
+    public MedicationListPanel(CardLayout cardLayout, JPanel parentPanel, int userId) {
         this.cardLayout = cardLayout;
         this.parentPanel = parentPanel;
-        this.currentUserId = userId; // 전달받은 userId 저장
+        this.currentUserId = userId;
 
         setLayout(new BorderLayout());
         setBackground(Color.WHITE);
@@ -54,7 +54,7 @@ public class MedicationListPanel extends JPanel {
         listContainer.setBorder(BorderFactory.createEmptyBorder(0, 15, 10, 15));
 
         // CountdownPanel 생성 및 listContainer에 초기 추가
-        countdownPanel = new CountdownPanel(new DosageRecordDao(), this.currentUserId); // 저장된 userId 사용
+        countdownPanel = new CountdownPanel(new DosageRecordDao(), this.currentUserId);
         countdownPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         listContainer.add(countdownPanel);
         listContainer.add(Box.createVerticalStrut(10));
@@ -70,7 +70,7 @@ public class MedicationListPanel extends JPanel {
         listContainer.removeAll(); // 모든 컴포넌트 제거 (CountdownPanel 포함)
 
         // CountdownPanel 다시 추가 (항상 최상단에 위치)
-        if (countdownPanel == null) { // 혹시 모를 경우 대비 (일반적으로는 생성자에서 생성됨)
+        if (countdownPanel == null) { // 혹시 모를 경우 대비
             countdownPanel = new CountdownPanel(new DosageRecordDao(), this.currentUserId);
             countdownPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
         }

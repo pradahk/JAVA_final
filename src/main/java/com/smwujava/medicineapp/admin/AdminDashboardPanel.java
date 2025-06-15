@@ -1,17 +1,9 @@
 package com.smwujava.medicineapp.admin;
 
-import com.smwujava.medicineapp.controller.UserSummary;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
-import com.smwujava.medicineapp.dao.MedicineDao;
-import com.smwujava.medicineapp.dao.UserDao;
-import com.smwujava.medicineapp.model.DosageRecord;
-import com.smwujava.medicineapp.model.User;
 
 import javax.swing.*;
 import java.awt.*;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 public class AdminDashboardPanel extends JPanel {
@@ -26,7 +18,7 @@ public class AdminDashboardPanel extends JPanel {
         topPanel.setBackground(Color.LIGHT_GRAY);
         topPanel.setBorder(BorderFactory.createLineBorder(Color.DARK_GRAY, 1));
 
-        UserSummaryPanel userInfoPanel = new UserSummaryPanel(); // JPanel → 실제 타입으로 변경
+        UserSummaryPanel userInfoPanel = new UserSummaryPanel();
         VersionPanel versionPanel = new VersionPanel();
 
         topPanel.add(userInfoPanel);

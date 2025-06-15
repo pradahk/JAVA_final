@@ -85,8 +85,6 @@ public class DBManager {
                     "   UNIQUE (user_id, med_id, scheduled_time)" +
                     ");";
 
-    private DBManager() {}
-
     public static Connection getConnection() throws SQLException {
         Connection con = DriverManager.getConnection(DB_URL);
         try (Statement stmt = con.createStatement()) {
@@ -111,7 +109,6 @@ public class DBManager {
                         System.err.println("Error creating schema: " + e.getMessage());
                     }
                 } else {
-                    // Column alteration checks
                     if (!columnExists(conn, "Users", "is_admin")) {
                         try (Statement stmt = conn.createStatement()) { stmt.executeUpdate("ALTER TABLE Users ADD COLUMN is_admin INTEGER DEFAULT 0;"); }
                         catch (SQLException e) { System.err.println("Error adding 'is_admin': " + e.getMessage());}
@@ -198,19 +195,6 @@ public class DBManager {
             pstmt.setInt(3, 0);
             pstmt.setInt(4, 1);
             pstmt.executeUpdate();
-        }
-    }
-
-    private static void insertSampleMedicineDataIfNeeded(Connection conn, int userId) throws SQLException {
-    }
-
-    public static void closeConnection(Connection conn) {
-        if (conn != null) {
-            try {
-                conn.close();
-            } catch (SQLException e) {
-                System.err.println("Error closing DB connection: " + e.getMessage());
-            }
         }
     }
 }

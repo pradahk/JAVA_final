@@ -49,9 +49,4 @@ public class BGMPlayer extends Thread {
             System.out.println("BGMPlayer: 스레드 및 오디오 리소스가 완전히 종료되었습니다.");
         }
     }
-
-    public void stopBGM() {
-        isRunning = false; // 루프를 종료하도록 플래그 변경
-        this.interrupt();  // sleep 상태에서 즉시 깨어나도록 인터럽트
-    }
 }
