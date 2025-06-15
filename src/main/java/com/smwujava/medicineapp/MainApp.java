@@ -98,16 +98,13 @@ public class MainApp {
 
         mainContainerPanel.add(mainViewPanel, "MAIN_VIEW");
 
-        MedicineDao medicineDao = new MedicineDao();
-        UserPatternDao userPatternDao = new UserPatternDao();
-        DosageRecordDao dosageRecordDao = new DosageRecordDao();
-
+        // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
         AlarmScheduler scheduler = new AlarmScheduler(
                 mainFrame,
                 userId,
-                medicineDao,      // 1. MedicineDao
-                userPatternDao,   // 2. UserPatternDao
-                dosageRecordDao   // 3. DosageRecordDao
+                new DosageRecordDao(),
+                new UserPatternDao(),
+                new MedicineDao()
         );
         scheduler.start();
     }

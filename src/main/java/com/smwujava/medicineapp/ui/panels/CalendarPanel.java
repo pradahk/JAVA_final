@@ -170,6 +170,12 @@ public class CalendarPanel extends JPanel {
         if(medicationListPanel != null) medicationListPanel.updateMedications(medicationDetails);
     }
 
+    public void triggerTodayAlarm(int userId) {
+        JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+        MedicationSchedulerService scheduler = new MedicationSchedulerService(recordDao, medicineDao, userPatternDao);
+        scheduler.scheduleTodayMedications(userId, parentFrame);
+    }
+
     public void selectDayInUI(int dayToSelect) {
         if (currentlyHighlightedDayPanel != null) {
             currentlyHighlightedDayPanel.setBackground(Color.WHITE);

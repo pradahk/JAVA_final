@@ -59,16 +59,12 @@ public class CalendarWindow {
             mainFrameInstance.setLocationRelativeTo(null);
             mainFrameInstance.setVisible(true);
 
-            MedicineDao medicineDao = new MedicineDao();
-            UserPatternDao userPatternDao = new UserPatternDao();
-            DosageRecordDao dosageRecordDao = new DosageRecordDao();
-
             AlarmScheduler scheduler = new AlarmScheduler(
                     mainFrameInstance,
                     currentUserId,
-                    medicineDao,      // 1. MedicineDao
-                    userPatternDao,   // 2. UserPatternDao
-                    dosageRecordDao   // 3. DosageRecordDao
+                    new DosageRecordDao(),
+                    new UserPatternDao(),
+                    new MedicineDao()
             );
             scheduler.start();
         });
