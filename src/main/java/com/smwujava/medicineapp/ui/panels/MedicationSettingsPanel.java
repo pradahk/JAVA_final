@@ -28,57 +28,77 @@ public class MedicationSettingsPanel extends JPanel {
 
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
         setBackground(Color.WHITE);
-        setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        setBorder(BorderFactory.createEmptyBorder(30, 20, 20, 20));
 
         JPanel formContainer = new JPanel();
         formContainer.setLayout(new BoxLayout(formContainer, BoxLayout.Y_AXIS));
         formContainer.setOpaque(false);
+        formContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         nameField = new JTextField();
         dayCheckboxes = new JCheckBox[7];
 
         formContainer.add(createLabelAndField("약 이름", nameField));
 
-        JPanel daysPanel = new JPanel(new GridLayout(1, 7, 5, 0));
+        JPanel daysPanel = new JPanel(new GridLayout(1, 7, 10, 0));
         daysPanel.setOpaque(false);
         String[] days = {"일", "월", "화", "수", "목", "금", "토"};
         for (int i = 0; i < days.length; i++) {
             dayCheckboxes[i] = new JCheckBox(days[i]);
             dayCheckboxes[i].setOpaque(false);
+            dayCheckboxes[i].setFont(new Font("SansSerif", Font.PLAIN, 18));
             daysPanel.add(dayCheckboxes[i]);
         }
         formContainer.add(createLabelAndComponent("복용 주기", daysPanel));
 
-        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel timePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         timePanel.setOpaque(false);
         periodBox = new JComboBox<>(new String[]{"아침 식사", "점심 식사", "저녁 식사", "취침"});
         offsetBox = new JComboBox<>(new String[]{"0분", "5분", "10분", "15분", "30분", "1시간"});
         directionBox = new JComboBox<>(new String[]{"전", "후", "정각"});
+        periodBox.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        offsetBox.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        directionBox.setFont(new Font("SansSerif", Font.PLAIN, 16));
         timePanel.add(periodBox);
         timePanel.add(offsetBox);
         timePanel.add(directionBox);
         formContainer.add(createLabelAndComponent("복용 시간대", timePanel));
 
-        JPanel dosePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel dosePanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         dosePanel.setOpaque(false);
         JButton minus = new JButton("-");
         countLabel = new JLabel("1");
         JButton plus = new JButton("+");
-        minus.addActionListener(e -> { int c = Integer.parseInt(countLabel.getText()); if (c > 1) countLabel.setText(String.valueOf(c - 1)); });
+        minus.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        plus.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        countLabel.setFont(new Font("SansSerif", Font.PLAIN, 18));
+        minus.addActionListener(e -> {
+            int c = Integer.parseInt(countLabel.getText());
+            if (c > 1) countLabel.setText(String.valueOf(c - 1));
+        });
         plus.addActionListener(e -> countLabel.setText(String.valueOf(Integer.parseInt(countLabel.getText()) + 1)));
         dosePanel.add(minus);
         dosePanel.add(countLabel);
         dosePanel.add(plus);
         formContainer.add(createLabelAndComponent("하루 복용량", dosePanel));
 
-        colorPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        colorPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
         colorPanel.setOpaque(false);
-        Color[] colors = {new Color(153, 153, 255), new Color(204, 255, 153), new Color(255, 204, 204), new Color(255, 255, 153), new Color(204, 204, 255), new Color(224, 224, 224)};
+        Color[] colors = {
+                new Color(153, 153, 255),
+                new Color(204, 255, 153),
+                new Color(255, 204, 204),
+                new Color(255, 255, 153),
+                new Color(204, 204, 255),
+                new Color(160, 160, 160)
+        };
         for (Color color : colors) {
             JButton colorBtn = new JButton();
             colorBtn.setBackground(color);
             colorBtn.setPreferredSize(new Dimension(30, 30));
             colorBtn.setBorder(BorderFactory.createLineBorder(Color.WHITE));
+            colorBtn.setOpaque(true);
+            colorBtn.setContentAreaFilled(true);
             colorBtn.addActionListener(e -> selectColor(colorBtn));
             colorPanel.add(colorBtn);
         }
@@ -86,18 +106,20 @@ public class MedicationSettingsPanel extends JPanel {
 
         JButton saveButton = new JButton("저장");
         JButton cancelButton = new JButton("취소");
+        saveButton.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        cancelButton.setFont(new Font("SansSerif", Font.PLAIN, 16));
 
         saveButton.addActionListener(e -> handleSave());
         cancelButton.addActionListener(e -> cardLayout.show(mainPanel, "CALENDAR"));
 
-        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel buttonContainer = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         buttonContainer.setOpaque(false);
         buttonContainer.add(cancelButton);
         buttonContainer.add(saveButton);
         formContainer.add(Box.createVerticalStrut(20));
         formContainer.add(buttonContainer);
 
-        add(new JScrollPane(formContainer));
+        add(formContainer);
     }
 
     private JPanel createLabelAndField(String labelText, JComponent field) {
@@ -105,12 +127,14 @@ public class MedicationSettingsPanel extends JPanel {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
         JLabel label = new JLabel(labelText);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        field.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setFont(new Font("SansSerif", Font.BOLD, 18));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        field.setMaximumSize(new Dimension(250, 40));
+        field.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(label);
         panel.add(Box.createVerticalStrut(5));
         panel.add(field);
-        panel.add(Box.createVerticalStrut(10));
+        panel.add(Box.createVerticalStrut(20));
         return panel;
     }
 
@@ -119,12 +143,13 @@ public class MedicationSettingsPanel extends JPanel {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         panel.setOpaque(false);
         JLabel label = new JLabel(labelText);
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
-        component.setAlignmentX(Component.LEFT_ALIGNMENT);
+        label.setFont(new Font("SansSerif", Font.BOLD, 18));
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        component.setAlignmentX(Component.CENTER_ALIGNMENT);
         panel.add(label);
         panel.add(Box.createVerticalStrut(5));
         panel.add(component);
-        panel.add(Box.createVerticalStrut(10));
+        panel.add(Box.createVerticalStrut(20));
         return panel;
     }
 
@@ -151,15 +176,16 @@ public class MedicationSettingsPanel extends JPanel {
 
     private void clearFields() {
         nameField.setText("");
-        for (JCheckBox cb : dayCheckboxes) if(cb != null) cb.setSelected(false);
-        if(periodBox != null) periodBox.setSelectedIndex(0);
-        if(offsetBox != null) offsetBox.setSelectedIndex(0);
-        if(directionBox != null) directionBox.setSelectedIndex(0);
-        if(countLabel != null) countLabel.setText("1");
+        for (JCheckBox cb : dayCheckboxes) if (cb != null) cb.setSelected(false);
+        if (periodBox != null) periodBox.setSelectedIndex(0);
+        if (offsetBox != null) offsetBox.setSelectedIndex(0);
+        if (directionBox != null) directionBox.setSelectedIndex(0);
+        if (countLabel != null) countLabel.setText("1");
         selectedColor = null;
-        if(colorPanel != null) {
+        if (colorPanel != null) {
             for (Component comp : colorPanel.getComponents()) {
-                if (comp instanceof JButton) ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE));
+                if (comp instanceof JButton)
+                    ((JButton) comp).setBorder(BorderFactory.createLineBorder(Color.WHITE));
             }
         }
     }

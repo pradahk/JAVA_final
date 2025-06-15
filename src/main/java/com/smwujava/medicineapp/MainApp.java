@@ -10,21 +10,20 @@ import com.smwujava.medicineapp.ui.panels.*;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.dao.MedicineDao;
 import com.smwujava.medicineapp.dao.UserPatternDao;
+import com.smwujava.medicineapp.ui.panels.CharacterPanel;
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.function.Consumer;
 
 public class MainApp {
-    // private JFrame mainFrame; // -> static으로 변경
-    private static JFrame mainFrameInstance; // 다른 클래스에서 접근 가능하도록 static으로 변경
+    private static JFrame mainFrameInstance;
     private CardLayout appCardLayout;
     private JPanel mainContainerPanel;
     private BGMPlayer bgmPlayer;
     private User loggedInUser;
 
     public MainApp() {
-        // mainFrame = new JFrame("나의 약 복용 캘린더"); // -> mainFrameInstance로 변경
         mainFrameInstance = new JFrame("나의 약 복용 캘린더");
         mainFrameInstance.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrameInstance.setLayout(new BorderLayout());
@@ -32,9 +31,11 @@ public class MainApp {
         appCardLayout = new CardLayout();
         mainContainerPanel = new JPanel(appCardLayout);
 
+        CharacterPanel characterPanel = new CharacterPanel(appCardLayout, mainContainerPanel);
         LoginPanel loginPanel = new LoginPanel();
         RegisterPanel registerPanel = new RegisterPanel();
 
+        mainContainerPanel.add(characterPanel, "CHARACTER");
         mainContainerPanel.add(loginPanel, "LOGIN");
         mainContainerPanel.add(registerPanel, "REGISTER");
 
@@ -44,7 +45,7 @@ public class MainApp {
 
         mainFrameInstance.add(mainContainerPanel, BorderLayout.CENTER);
 
-        showPanel("LOGIN");
+        showPanel("CHARACTER");
 
         mainFrameInstance.setSize(new Dimension(500, 800));
         mainFrameInstance.setMinimumSize(new Dimension(450, 700));
