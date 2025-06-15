@@ -1,5 +1,6 @@
 package com.smwujava.medicineapp.test;
 
+import com.smwujava.medicineapp.MainApp;
 import com.smwujava.medicineapp.dao.DosageRecordDao;
 import com.smwujava.medicineapp.service.AlarmResponseHandler;
 import com.smwujava.medicineapp.ui.panels.CalendarPanel;
@@ -13,7 +14,7 @@ public class AlarmPopupWindow extends JDialog {
     public AlarmPopupWindow(JFrame parentFrame, int userId, int medId, String medName, LocalDateTime scheduledTime) {
         super(parentFrame, "복용 알림", true);
 
-        // UI 요소 생성 (기존과 동일)
+        // UI 요소 생성
         JLabel label = new JLabel("<html><center><b>" + medName + "</b><br>복용 시간입니다!<br>어떻게 하시겠어요?</center></html>", JLabel.CENTER);
         label.setFont(new Font("SansSerif", Font.PLAIN, 16));
         add(label, BorderLayout.CENTER);
@@ -35,19 +36,18 @@ public class AlarmPopupWindow extends JDialog {
         // 버튼 이벤트 리스너
         nowButton.addActionListener(e -> {
             responseHandler.handleUserResponse("1", userId, medId, scheduledTime);
-            refreshCalendarIfOpen(); // 캘린더 새로고침 기능 활성화
+            refreshCalendarIfOpen();
             dispose();
         });
 
         laterButton.addActionListener(e -> {
             responseHandler.handleUserResponse("2", userId, medId, scheduledTime);
-            // '나중에'는 상태 변경이 없으므로 캘린더를 새로고침할 필요가 없습니다.
             dispose();
         });
 
         skipButton.addActionListener(e -> {
             responseHandler.handleUserResponse("3", userId, medId, scheduledTime);
-            refreshCalendarIfOpen(); // 캘린더 새로고침 기능 활성화
+            refreshCalendarIfOpen();
             dispose();
         });
 
@@ -63,9 +63,9 @@ public class AlarmPopupWindow extends JDialog {
      * 메인 캘린더 창이 열려있을 경우, 그 안의 CalendarPanel을 찾아 새로고침합니다.
      */
     private void refreshCalendarIfOpen() {
-        // CalendarWindow를 통해 메인 프레임이 열려있는지 확인합니다.
-        if (CalendarWindow.isOpen()) {
-            JFrame mainFrame = CalendarWindow.getFrame();
+        // MainApp을 통해 메인 프레임이 열려있는지 확인합니다.
+        if (MainApp.isRunning()) {
+            JFrame mainFrame = MainApp.getFrame();
             if (mainFrame != null) {
                 // 프레임의 모든 구성 요소를 재귀적으로 탐색하여 CalendarPanel을 찾습니다.
                 findAndRefreshCalendarPanel(mainFrame);

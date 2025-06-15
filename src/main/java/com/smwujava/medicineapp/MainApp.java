@@ -16,16 +16,18 @@ import java.awt.*;
 import java.util.function.Consumer;
 
 public class MainApp {
-    private JFrame mainFrame;
+    // private JFrame mainFrame; // -> static으로 변경
+    private static JFrame mainFrameInstance; // 다른 클래스에서 접근 가능하도록 static으로 변경
     private CardLayout appCardLayout;
     private JPanel mainContainerPanel;
     private BGMPlayer bgmPlayer;
     private User loggedInUser;
 
     public MainApp() {
-        mainFrame = new JFrame("나의 약 복용 캘린더");
-        mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        mainFrame.setLayout(new BorderLayout());
+        // mainFrame = new JFrame("나의 약 복용 캘린더"); // -> mainFrameInstance로 변경
+        mainFrameInstance = new JFrame("나의 약 복용 캘린더");
+        mainFrameInstance.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        mainFrameInstance.setLayout(new BorderLayout());
 
         appCardLayout = new CardLayout();
         mainContainerPanel = new JPanel(appCardLayout);
@@ -40,14 +42,14 @@ public class MainApp {
         loginPanel.addRegisterActionListener(e -> showPanel("REGISTER"));
         registerPanel.addBackToLoginListener(e -> showPanel("LOGIN"));
 
-        mainFrame.add(mainContainerPanel, BorderLayout.CENTER);
+        mainFrameInstance.add(mainContainerPanel, BorderLayout.CENTER);
 
         showPanel("LOGIN");
 
-        mainFrame.setSize(new Dimension(500, 800));
-        mainFrame.setMinimumSize(new Dimension(450, 700));
-        mainFrame.setLocationRelativeTo(null);
-        mainFrame.setVisible(true);
+        mainFrameInstance.setSize(new Dimension(500, 800));
+        mainFrameInstance.setMinimumSize(new Dimension(450, 700));
+        mainFrameInstance.setLocationRelativeTo(null);
+        mainFrameInstance.setVisible(true);
     }
 
     private void handleLogin() {
@@ -68,7 +70,7 @@ public class MainApp {
                 showPanel("MAIN_VIEW");
             }
         } else {
-            JOptionPane.showMessageDialog(mainFrame, "아이디 또는 비밀번호가 일치하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrameInstance, "아이디 또는 비밀번호가 일치하지 않습니다.", "로그인 실패", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -100,12 +102,13 @@ public class MainApp {
 
         // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
         AlarmScheduler scheduler = new AlarmScheduler(
-                mainFrame,
+                mainFrameInstance,
                 userId,
                 new DosageRecordDao(),
                 new UserPatternDao(),
                 new MedicineDao()
         );
+        // 스케줄러를 시작하면, 내부 로직에 의해 즉시 초기 설정 작업이 실행됩니다.
         scheduler.start();
     }
 
@@ -115,7 +118,6 @@ public class MainApp {
     }
 
     private void startBGM() {
-        // resources/music 폴더의 background_music.wav 파일을 재생
         bgmPlayer = new BGMPlayer("/music/background_music.wav");
         bgmPlayer.start();
     }
@@ -132,6 +134,24 @@ public class MainApp {
         }
         return null;
     }
+
+    // --- 추가된 메서드 ---
+    /**
+     * 다른 클래스에서 메인 프레임에 접근할 수 있도록 static 메서드를 제공합니다.
+     * @return 메인 JFrame 인스턴스
+     */
+    public static JFrame getFrame() {
+        return mainFrameInstance;
+    }
+
+    /**
+     * 다른 클래스에서 메인 프레임이 현재 실행 중인지 확인할 수 있도록 static 메서드를 제공합니다.
+     * @return 프레임이 존재하고 화면에 보이면 true
+     */
+    public static boolean isRunning() {
+        return mainFrameInstance != null && mainFrameInstance.isVisible();
+    }
+    // --- ---
 
     public static void main(String[] args) {
         try {
