@@ -1,17 +1,17 @@
 package com.smwujava.medicineapp.controller;
 
 public class UserSummary {
-    private String userId;
+    private String username;
     private int medicineCount;
     private double successRate;
 
-    public UserSummary(String userId, int medicineCount, double successRate) {
-        this.userId = userId;
+    public UserSummary(String username, int medicineCount, double successRate) {
+        this.username = username;
         this.medicineCount = medicineCount;
         this.successRate = successRate;
     }
 
-    public String getUserId() { return userId; }
+    public String getUsername() { return username; }
     public int getMedicineCount() { return medicineCount; }
     public double getSuccessRate() { return successRate; }
 }
