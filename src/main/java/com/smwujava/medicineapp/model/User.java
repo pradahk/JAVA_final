@@ -33,11 +33,6 @@ public class User {
     }
 
     public void setUserId(int userId) {this.userId = userId;}
-    public void setUsername(String username) {this.username = username;}
-    public void setPassword(String password) {this.password = password;}
-    public void setAutoLogin(boolean autoLogin) { //기존 Setter
-        this.autoLogin = autoLogin;
-    }
     public void setAdmin(boolean admin) { //변경점 5: isAdmin Setter 추가
         isAdmin = admin;
     }

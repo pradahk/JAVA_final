@@ -69,11 +69,9 @@ public class CalendarWindow {
             scheduler.start();
         });
     }
-
     public static JFrame getFrame() {
         return mainFrameInstance;
     }
-
     public static boolean isOpen() {
         return mainFrameInstance != null && mainFrameInstance.isVisible();
     }

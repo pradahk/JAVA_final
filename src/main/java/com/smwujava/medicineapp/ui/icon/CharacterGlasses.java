@@ -12,8 +12,8 @@ public class CharacterGlasses extends JPanel {
     private final int frameOuterH = 75;
     private final int frameThickness = 13;
     private final int gap = 15;
-    private final int arc = 50; // 곡률
-    private final int y = 200;  // 수직 위치
+    private final int arc = 50;
+    private final int y = 200;
 
     public CharacterGlasses() {
         setOpaque(false); // 투명 배경

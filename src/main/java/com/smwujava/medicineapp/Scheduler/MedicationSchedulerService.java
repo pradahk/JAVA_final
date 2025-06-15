@@ -34,22 +34,22 @@ public class MedicationSchedulerService {
         try {
             pattern = userPatternDao.findPatternByUserId(userId);
             if (pattern == null) {
-                System.err.println("❌ 사용자 생활 패턴이 없습니다. 스케줄링을 중단합니다.");
+                System.err.println("사용자 생활 패턴이 없습니다. 스케줄링을 중단합니다.");
                 return;
             }
 
             medicines = medicineDao.findMedicinesByUserId(userId);
             if (medicines.isEmpty()) {
-                System.out.println("ℹ️ 등록된 약이 없습니다.");
+                System.out.println("등록된 약이 없습니다.");
                 return;
             }
         } catch (SQLException e) {
-            System.err.println("❌ 스케줄링 데이터 로딩 중 DB 오류 발생: " + e.getMessage());
+            System.err.println("스케줄링 데이터 로딩 중 DB 오류 발생: " + e.getMessage());
             e.printStackTrace();
             return;
         }
 
-        System.out.println("--- 오늘의 복용 스케줄 생성을 시작합니다 ---");
+        System.out.println("오늘의 복용 스케줄 생성을 시작합니다");
         LocalDate today = LocalDate.now();
 
         for (Medicine med : medicines) {
@@ -63,7 +63,7 @@ public class MedicationSchedulerService {
             LocalTime scheduledTime = getBaseTime(pattern, med);
 
             if (scheduledTime == null) {
-                System.err.println("  -> ❌ 복용 시간을 계산할 수 없습니다. 이 약의 스케줄링을 건너뜁니다.");
+                System.err.println("  -> 복용 시간을 계산할 수 없습니다. 이 약의 스케줄링을 건너뜁니다.");
                 continue;
             }
             System.out.println("  -> 계산된 복용 시각: " + scheduledTime);
@@ -87,12 +87,12 @@ public class MedicationSchedulerService {
                 if (e.getMessage() != null && e.getMessage().contains("UNIQUE constraint failed")) {
                     System.out.println("  -> DEBUG: 이미 존재하는 복용 기록입니다. 새로 생성하지 않습니다.");
                 } else {
-                    System.err.println("  -> ❌ 복용 기록 삽입 중 오류 발생: " + e.getMessage());
+                    System.err.println("  -> 복용 기록 삽입 중 오류 발생: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
         }
-        System.out.println("\n--- 모든 약의 스케줄 생성이 완료되었습니다 ---");
+        System.out.println("\n모든 약의 스케줄 생성이 완료되었습니다");
     }
 
     private LocalTime getBaseTime(UserPattern pattern, Medicine med) {
@@ -113,12 +113,11 @@ public class MedicationSchedulerService {
         } else if (medCondition != null && medCondition.contains("잠자기")) {
             refTime = parseTime(pattern.getSleepStartTime(), "취침 시간");
         } else {
-            System.err.println("  -> ❌ 알 수 없는 복용 조건입니다: " + medCondition);
+            System.err.println("  -> 알 수 없는 복용 조건입니다: " + medCondition);
             return null;
         }
 
         if (refTime == null) return null;
-
         return isBefore ? refTime.minusMinutes(offset) : refTime.plusMinutes(offset);
     }
 
@@ -143,13 +142,13 @@ public class MedicationSchedulerService {
 
     private LocalTime parseTime(String timeStr, String context) {
         if (timeStr == null || timeStr.trim().isEmpty()) {
-            System.err.println("  -> ❌ " + context + " 시간이 설정되지 않아 계산에 실패했습니다.");
+            System.err.println("  -> X " + context + " 시간이 설정되지 않아 계산에 실패했습니다.");
             return null;
         }
         try {
             return LocalTime.parse(timeStr);
         } catch (java.time.format.DateTimeParseException e) {
-            System.err.println("  -> ❌ " + context + "의 시간 형식('" + timeStr + "')이 잘못되었습니다.");
+            System.err.println("  -> X " + context + "의 시간 형식('" + timeStr + "')이 잘못되었습니다.");
             return null;
         }
     }

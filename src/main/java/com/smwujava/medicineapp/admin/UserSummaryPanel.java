@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public class UserSummaryPanel extends JPanel {
     private final UserListPanel userListPanel;
     private final UserSummaryService service;
-    private List<Integer> userIds;  // final 제거: DB에서 매번 새로 가져올 수도 있으니
+    private List<Integer> userIds;
 
     public UserSummaryPanel() {
         setLayout(new BorderLayout());
@@ -27,8 +27,8 @@ public class UserSummaryPanel extends JPanel {
 
         add(userListPanel, BorderLayout.CENTER);
 
-        loadUserIdsAndUpdate();    // 최초 데이터 로드 및 갱신
-        startDailyUpdateTimer();   // 24시간마다 자동 갱신
+        loadUserIdsAndUpdate();
+        startDailyUpdateTimer();
     }
 
     private void loadUserIdsAndUpdate() {
@@ -51,12 +51,12 @@ public class UserSummaryPanel extends JPanel {
     }
 
     private void startDailyUpdateTimer() {
-        Timer timer = new Timer(true); // 데몬 쓰레드
+        Timer timer = new Timer(true);
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {
-                SwingUtilities.invokeLater(() -> loadUserIdsAndUpdate());  // 매일 전체 유저 리스트부터 다시 로드 후 갱신
+                SwingUtilities.invokeLater(() -> loadUserIdsAndUpdate());
             }
-        }, 24 * 60 * 60 * 1000L, 24 * 60 * 60 * 1000L); // 24시간마다 실행
+        }, 24 * 60 * 60 * 1000L, 24 * 60 * 60 * 1000L);
     }
 }

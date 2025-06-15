@@ -29,7 +29,7 @@ public class LifestyleController {
             String username = (user != null) ? user.getUsername() : "사용자 정보 없음";
 
             if (pattern == null) {
-                pattern = new UserPattern(); // 빈 패턴 객체
+                pattern = new UserPattern();
             }
 
             view.updateDisplay(username, pattern);

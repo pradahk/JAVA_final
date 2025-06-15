@@ -101,7 +101,6 @@ public class MainApp {
 
         mainContainerPanel.add(mainViewPanel, "MAIN_VIEW");
 
-        // 일반 사용자로 로그인했을 때만 알람 스케줄러 시작
         AlarmScheduler scheduler = new AlarmScheduler(
                 mainFrameInstance,
                 userId,
@@ -109,7 +108,6 @@ public class MainApp {
                 new UserPatternDao(),
                 new MedicineDao()
         );
-        // 스케줄러를 시작하면, 내부 로직에 의해 즉시 초기 설정 작업이 실행됩니다.
         scheduler.start();
     }
 
@@ -136,23 +134,13 @@ public class MainApp {
         return null;
     }
 
-    // --- 추가된 메서드 ---
-    /**
-     * 다른 클래스에서 메인 프레임에 접근할 수 있도록 static 메서드를 제공합니다.
-     * @return 메인 JFrame 인스턴스
-     */
     public static JFrame getFrame() {
         return mainFrameInstance;
     }
 
-    /**
-     * 다른 클래스에서 메인 프레임이 현재 실행 중인지 확인할 수 있도록 static 메서드를 제공합니다.
-     * @return 프레임이 존재하고 화면에 보이면 true
-     */
     public static boolean isRunning() {
         return mainFrameInstance != null && mainFrameInstance.isVisible();
     }
-    // --- ---
 
     public static void main(String[] args) {
         try {

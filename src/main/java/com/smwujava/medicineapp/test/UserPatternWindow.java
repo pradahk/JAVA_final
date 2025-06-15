@@ -11,7 +11,7 @@ public class UserPatternWindow extends JFrame {
         setTitle("생활 패턴 입력 테스트");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(500, 700);
-        setLocationRelativeTo(null); // 화면 중앙에 위치
+        setLocationRelativeTo(null);
 
         // CardLayout 기반 메인 패널 생성
         CardLayout cardLayout = new CardLayout();
@@ -25,7 +25,7 @@ public class UserPatternWindow extends JFrame {
         setVisible(true);
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) { // 실행 확인을 위한 임시
         // 예시 userId로 실행
         SwingUtilities.invokeLater(() -> new UserPatternWindow(1));
     }

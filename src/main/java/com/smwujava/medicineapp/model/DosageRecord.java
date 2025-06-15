@@ -28,16 +28,6 @@ public class DosageRecord {
         this.isSkipped = isSkipped;
     }
 
-    public DosageRecord(int userId, int medId, LocalDateTime scheduledTime, LocalDateTime actualTakenTime, LocalDateTime rescheduledTime, boolean isSkipped) {
-        this.userId = userId;
-        this.medId = medId;
-        this.scheduledTime = scheduledTime;
-        this.actualTakenTime = actualTakenTime;
-        this.rescheduledTime = rescheduledTime;
-        this.isSkipped = isSkipped;
-
-    }
-
     public void setId(int id) {
         this.id = id;
     }
@@ -49,16 +39,12 @@ public class DosageRecord {
     public LocalDateTime getActualTakenTime() {return actualTakenTime;}
     public LocalDateTime getRescheduledTime() {return rescheduledTime;}
 
-    /**
-     * 복용 여부를 확인합니다.
-     * 실제 복용 시간이 기록되어 있고, 건너뛰지 않았을 경우에만 true를 반환합니다.
-     * @return 복용했으면 true, 아니면 false
-     */
+    // 복용 여부를 확인
     public boolean isTaken() {
         return actualTakenTime != null && !isSkipped;
     }
 
-    public boolean isSkipped() { //변경점 7: isSkipped Getter 추가
+    public boolean isSkipped() { // AlarmScheduler를 위한 isSkipped Getter 추가
         return isSkipped;
     }
 

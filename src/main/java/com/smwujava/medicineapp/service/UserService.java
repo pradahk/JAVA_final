@@ -69,24 +69,4 @@ public class UserService {
             return null;
         }
     }
-
-    public static User checkAutoLogin() {
-        try {
-            return UserDao.findAutoLoginUser();
-        } catch (SQLException e) {
-            System.err.println("자동 로그인 확인 중 DB 오류: " + e.getMessage());
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public void logout(int userId) {
-        AutoLoginUtil.clearAutoLoginUser();
-        try {
-            UserDao.updateAutoLoginStatus(userId, false);
-        } catch (SQLException e) {
-            System.err.println("로그아웃 중 DB 업데이트 오류: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
 }

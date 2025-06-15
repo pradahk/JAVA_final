@@ -1,4 +1,3 @@
-//UserPattern
 package com.smwujava.medicineapp.model;
 
 public class UserPattern {

@@ -48,30 +48,9 @@ public class CalendarDayPanel extends JPanel {
             }
         }
     }
-
-    public void updatePillColors(List<Color> newColors) {
-        this.pillColors = newColors;
-        repaint();
-    }
-
-    public void addOnePillColor(Color color) {
-        if (pillColors != null && pillColors.size() < 4) {
-            pillColors.add(color);
-            repaint();
-        }
-    }
-
-    public void removePillColor(Color color) {
-        if (pillColors != null) {
-            pillColors.remove(color);
-            repaint();
-        }
-    }
-
     public int getDay() {
         return day;
     }
-
     public boolean isInMonth() {
         return isInMonth;
     }

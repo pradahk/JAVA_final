@@ -26,7 +26,7 @@ public class UserListPanel extends JPanel {
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // 모든 셀 읽기 전용
+                return false;
             }
         };
 

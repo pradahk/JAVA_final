@@ -81,7 +81,7 @@ public class UserPatternInputPanel extends JPanel {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         buttonPanel.setOpaque(false); // 배경 투명
         buttonPanel.add(saveButton);
-        add(buttonPanel); // 원래 add(saveButton) 대신 이걸 추가!
+        add(buttonPanel);
 
     }
 
@@ -181,8 +181,6 @@ public class UserPatternInputPanel extends JPanel {
             } catch (NumberFormatException ignored) { }
         }
     }
-
-    // Public getter methods
     public String getBreakfastStartTime() { return breakfastStartHour.getText() + ":" + breakfastStartMinute.getText(); }
     public String getBreakfastEndTime() { return breakfastEndHour.getText() + ":" + breakfastEndMinute.getText(); }
     public String getLunchStartTime() { return lunchStartHour.getText() + ":" + lunchStartMinute.getText(); }

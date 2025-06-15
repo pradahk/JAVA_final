@@ -25,8 +25,6 @@ import java.time.LocalTime;
 public class AverageChartPanel extends JPanel {
 
     // 시간대별 평균 성공률 저장용 변수
-    // 이 변수는 "시간대"를 키(String, 예: "08시")로 하고,
-    // 그 시간대의 평균 성공률을 값(Double)으로 저장
     private Map<String, Double> successRatesByTimeSlot = new LinkedHashMap<>();
 
     public AverageChartPanel() {
@@ -51,7 +49,7 @@ public class AverageChartPanel extends JPanel {
         plot.getDomainAxis().setLabelFont(new Font("맑은 고딕", Font.BOLD, 13));
         plot.getRangeAxis().setTickLabelFont(new Font("맑은 고딕", Font.PLAIN, 10));
         plot.getRangeAxis().setLabelFont(new Font("맑은 고딕", Font.BOLD, 13));
-        plot.getRangeAxis().setRange(0.0, 100.0); // Y축 고정
+        plot.getRangeAxis().setRange(0.0, 100.0);
 
         CategoryAxis xAxis = plot.getDomainAxis();
         xAxis.setCategoryLabelPositions(CategoryLabelPositions.STANDARD);
@@ -117,9 +115,8 @@ public class AverageChartPanel extends JPanel {
             List<Double> rates = slotToRates.getOrDefault(slot, new ArrayList<>());
             double avg = rates.stream().mapToDouble(Double::doubleValue).average().orElse(0);
             dataset.addValue(avg, "전체 평균 성공률", slot);
-            successRatesByTimeSlot.put(slot, avg); // Map에도 저장
-            // avg는 각 시간대의 평균 성공률입니다.
-            // 이걸 Map에 넣어서 나중에 꺼내 쓸 수 있게 저장
+            successRatesByTimeSlot.put(slot, avg);
+            // avg는 각 시간대의 평균 성공률. 이걸 Map에 넣어서 나중에 꺼내 쓸 수 있게 저장
         }
 
         return dataset;

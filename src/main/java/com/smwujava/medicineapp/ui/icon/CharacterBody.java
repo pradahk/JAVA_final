@@ -6,7 +6,7 @@ import java.awt.geom.Arc2D;
 
 public class CharacterBody extends JPanel {
 
-    // 캐릭터의 크기 정보 (중앙 정렬 계산에 사용됨)
+    // 캐릭터의 크기 정보
     public final int rectY = 150;
     public final int width = 190;
     public final int heightOval = 50;
@@ -44,15 +44,4 @@ public class CharacterBody extends JPanel {
         g2d.drawLine(endX, rectY, endX, rectY + heightRect);     // 오른쪽 선
         g2d.draw(new Arc2D.Double(startX, bottomOvalY, width, heightOval, 0, -180, Arc2D.OPEN)); // 아래 타원 위쪽 절반
     }
-
-/*
-    public static void main(String[] args) {
-        JFrame frame = new JFrame("CharacterBody2");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(390, 500);
-        frame.add(new CharacterBody());
-        frame.setVisible(true);
-    }
-
- */
 }

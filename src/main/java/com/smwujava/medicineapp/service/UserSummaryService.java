@@ -53,18 +53,6 @@ public class UserSummaryService {
                 int total = records.size();
                 int success = 0;
 
-//                for (DosageRecord record : records) {
-//                    if (record.getActualTakenTime() != null && !record.isSkipped()) {
-//                        var baseTime = (record.getRescheduledTime() != null)
-//                                ? record.getRescheduledTime()
-//                                : record.getScheduledTime();
-//
-//                        long diff = Math.abs(Duration.between(baseTime, record.getActualTakenTime()).toMinutes());
-//                        if (diff <= 15) {
-//                            success++;
-//                        }
-//                    }
-//                }
                 for (DosageRecord record : records) {
                     System.out.println("검사 중 → " + record); // 전체 기록 출력
 
@@ -87,8 +75,6 @@ public class UserSummaryService {
                     }
                 }
 
-
-
                 double successRate = (total == 0) ? 0.0 : (double) success / total;
 
                 String username = userIdToName.getOrDefault(userId, "Unknown");
@@ -98,7 +84,6 @@ public class UserSummaryService {
                 e.printStackTrace();
             }
         }
-
         return summaries;
     }
 }
